@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+psycopg2-binary
+sqlalchemy
+geoalchemy2
+xgboost
+shap
+pandas
+scikit-learn
+joblib
