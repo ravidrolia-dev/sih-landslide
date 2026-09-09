@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const RiskPanel = ({ data, loading, error, locationName }) => {
+  const [alertModal, setAlertModal] = useState(null);
+  const [dispatching, setDispatching] = useState(false);
+
   if (loading) {
     return (
       <div className="panel-card loading-panel">
@@ -43,6 +46,29 @@ const RiskPanel = ({ data, loading, error, locationName }) => {
 
   const badgeColor = getCategoryColor(category);
 
+  const downloadPdfAdvisory = () => {
+    const lat = coordinates?.latitude;
+    const lon = coordinates?.longitude;
+    const loc = encodeURIComponent(locationName || 'Queried Location');
+    window.open(`http://localhost:8000/advisory/pdf?lat=${lat}&lon=${lon}&location_name=${loc}`, '_blank');
+  };
+
+  const triggerAlertSimulation = async () => {
+    setDispatching(true);
+    try {
+      const lat = coordinates?.latitude;
+      const lon = coordinates?.longitude;
+      const loc = encodeURIComponent(locationName || 'Queried Location');
+      const res = await fetch(`http://localhost:8000/advisory/alert-simulation?lat=${lat}&lon=${lon}&location_name=${loc}`, { method: 'POST' });
+      const alertData = await res.json();
+      setAlertModal(alertData);
+    } catch (err) {
+      alert("Failed to execute alert simulation: " + err.message);
+    } finally {
+      setDispatching(false);
+    }
+  };
+
   return (
     <div className="panel-card active-panel">
       {/* Location Header */}
@@ -71,6 +97,20 @@ const RiskPanel = ({ data, loading, error, locationName }) => {
           <span>50% Moderate</span>
           <span>100% Extreme</span>
         </div>
+      </div>
+
+      {/* Emergency Action Buttons */}
+      <div className="action-buttons">
+        <button className="pdf-btn" onClick={downloadPdfAdvisory}>
+          📄 Download NDRF/SDMA Advisory (PDF)
+        </button>
+        <button 
+          className={`alert-btn ${dispatching ? 'dispatching' : ''}`} 
+          onClick={triggerAlertSimulation}
+          disabled={dispatching}
+        >
+          {dispatching ? '📱 Dispatching Alert...' : '📱 Trigger Emergency Alert Simulation'}
+        </button>
       </div>
 
       {/* Satellite Metrics Grid */}
@@ -158,6 +198,46 @@ const RiskPanel = ({ data, loading, error, locationName }) => {
         <span className="source-tag">NDVI: {data_sources?.vegetation_ndvi}</span>
         <span className="source-tag">Rain: {data_sources?.precipitation}</span>
       </div>
+
+      {/* Emergency Dispatch Simulation Modal */}
+      {alertModal && (
+        <div className="modal-backdrop" onClick={() => setAlertModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🚨 Emergency Response Alert Dispatched</h3>
+              <button className="close-btn" onClick={() => setAlertModal(null)}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="dispatch-badge">
+                STATUS: {alertModal.status} | TX-ID: {alertModal.transaction_id}
+              </div>
+              
+              <h4>Recipients Notified ({alertModal.recipients_notified} Emergency Units):</h4>
+              <ul className="recipient-list">
+                {alertModal.recipients?.map((r, i) => (
+                  <li key={i}>
+                    <strong>{r.unit}</strong> — <span>{r.phone}</span> | <span>{r.email}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <h4>📲 Simulated SMS Alert Payload:</h4>
+              <pre className="payload-box">{alertModal.sms_payload}</pre>
+
+              <h4>📧 Simulated Email Notice Payload:</h4>
+              <pre className="payload-box">
+                Subject: {alertModal.email_payload?.subject}{"\n\n"}
+                {alertModal.email_payload?.body}
+              </pre>
+            </div>
+
+            <div className="modal-footer">
+              <button className="modal-close-btn" onClick={() => setAlertModal(null)}>Close Simulation Window</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

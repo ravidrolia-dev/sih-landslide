@@ -1,6 +1,6 @@
 import json
 import random
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -8,6 +8,7 @@ from geoalchemy2.functions import ST_AsGeoJSON
 
 from database import engine, get_db, Base
 import models
+import advisory_service
 
 # Initialize PostGIS tables if database is available
 try:
@@ -328,5 +329,34 @@ def get_cell_risk(cell_id: int, db: Session = Depends(get_db)):
             "lithology_class": cell.lithology_class
         }
     }
+
+
+@app.get("/advisory/pdf")
+def get_advisory_pdf(lat: float, lon: float, location_name: str = None):
+    """
+    Generates and downloads an official NDRF / SDMA Disaster Management Early Warning Advisory PDF Report.
+    """
+    risk_data = get_location_risk(lat, lon)
+    pdf_bytes = advisory_service.generate_advisory_pdf_bytes(lat, lon, location_name, risk_data)
+    
+    filename = f"NDRF_Landslide_Advisory_{lat:.2f}N_{lon:.2f}E.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+@app.post("/advisory/alert-simulation")
+def trigger_alert_simulation(lat: float, lon: float, location_name: str = None):
+    """
+    Executes a simulated emergency SMS & Email alert dispatch to DEOC, SDMA, and NDRF 1st Battalion units.
+    """
+    risk_data = get_location_risk(lat, lon)
+    dispatch_res = advisory_service.simulate_emergency_alert(lat, lon, location_name, risk_data)
+    return dispatch_res
+
 
 
