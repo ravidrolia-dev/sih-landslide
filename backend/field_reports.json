@@ -1,0 +1,72 @@
+[
+  {
+    "id": "report_1788961885656",
+    "title": "Offline Queued Report",
+    "reporter_name": "Field Unit 4",
+    "severity": "HIGH",
+    "latitude": 27.08,
+    "longitude": 93.6,
+    "location_name": "North-East India Location",
+    "description": "Synced from IndexedDB",
+    "image_url": "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?w=600&auto=format&fit=crop&q=60",
+    "timestamp": "2026-09-09T13:51:25.657013Z",
+    "synced": true,
+    "source": "Mobile Field App"
+  },
+  {
+    "id": "report_1788961883633",
+    "title": "Test Rockfall on Kohima Bypass",
+    "reporter_name": "Officer A. Konyak",
+    "severity": "CRITICAL",
+    "latitude": 25.68,
+    "longitude": 94.12,
+    "location_name": "North-East India Location",
+    "description": "Boulders on road",
+    "image_url": "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?w=600&auto=format&fit=crop&q=60",
+    "timestamp": "2026-09-09T13:51:23.633711Z",
+    "synced": true,
+    "source": "Mobile Field App"
+  },
+  {
+    "id": "report_101",
+    "title": "Severe Mudslide on Shillong-Guwahati Highway (NH-6)",
+    "reporter_name": "Insp. R. Sangma (Meghalaya SDMA)",
+    "severity": "CRITICAL",
+    "latitude": 25.712,
+    "longitude": 91.898,
+    "location_name": "Nongpoh Hill Cut, Meghalaya",
+    "description": "Heavy boulder collapse and mudslide completely blocking two lanes of NH-6. Traffic diverted.",
+    "image_url": "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?w=600&auto=format&fit=crop&q=60",
+    "timestamp": "2026-09-09T14:30:00Z",
+    "synced": true,
+    "source": "Field Officer GPS Camera"
+  },
+  {
+    "id": "report_102",
+    "title": "Soil Slump near Haflong Railway Track",
+    "reporter_name": "K. Baruah (NFR Engineer)",
+    "severity": "HIGH",
+    "latitude": 25.172,
+    "longitude": 93.021,
+    "location_name": "Haflong Hill Section, Assam",
+    "description": "Continuous seepage causing 15-meter embankment erosion adjacent to rail line. Monitoring in progress.",
+    "image_url": "https://images.unsplash.com/photo-1590402494682-cd3fb53b1f70?w=600&auto=format&fit=crop&q=60",
+    "timestamp": "2026-09-09T15:45:00Z",
+    "synced": true,
+    "source": "Mobile Officer App"
+  },
+  {
+    "id": "report_103",
+    "title": "Minor Debris Flow on Lachen Valley Route",
+    "reporter_name": "T. Lepcha (Sikkim Disaster Cell)",
+    "severity": "MEDIUM",
+    "latitude": 27.728,
+    "longitude": 88.542,
+    "location_name": "North Sikkim Highway",
+    "description": "Small rockfall cleared by local BRO excavators. Passable with caution.",
+    "image_url": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&fit=crop&q=60",
+    "timestamp": "2026-09-09T16:10:00Z",
+    "synced": true,
+    "source": "Citizen Alert"
+  }
+]

@@ -57,7 +57,7 @@ const getCategoryColor = (cat) => {
   }
 };
 
-const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData }) => {
+const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, fieldReports }) => {
   // Center map on overall North-East India region
   const center = [26.0, 92.8]; 
   const zoom = 7;
@@ -178,6 +178,42 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData })
         </>
       )}
 
+      {/* Field Report Ground-Truth Camera Pins */}
+      {fieldReports && fieldReports.map((report) => (
+        <Marker
+          key={report.id}
+          position={[report.latitude, report.longitude]}
+          icon={createCustomIcon(report.severity === 'CRITICAL' ? '#dc2626' : report.severity === 'HIGH' ? '#ea580c' : '#eab308')}
+        >
+          <Popup>
+            <div style={{ padding: '6px', maxWidth: '220px', fontFamily: 'sans-serif' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '16px' }}>📸</span>
+                <strong style={{ fontSize: '13px', color: '#0f172a' }}>{report.title}</strong>
+              </div>
+
+              {report.image_url && (
+                <img 
+                  src={report.image_url} 
+                  alt={report.title} 
+                  style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px', marginBottom: '6px' }}
+                />
+              )}
+
+              <div style={{ fontSize: '11px', color: '#475569', marginBottom: '4px' }}>
+                <strong>Severity:</strong> <span style={{ color: report.severity === 'CRITICAL' ? '#dc2626' : '#ea580c', fontWeight: 'bold' }}>{report.severity}</span><br/>
+                <strong>Reporter:</strong> {report.reporter_name}<br/>
+                <strong>Coords:</strong> {report.latitude.toFixed(4)}°, {report.longitude.toFixed(4)}°
+              </div>
+
+              <p style={{ fontSize: '11px', color: '#334155', margin: '4px 0 0 0', lineHeight: '1.3' }}>
+                {report.description}
+              </p>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+
       {/* Selected Location Marker Pin */}
       {selectedLocation && (
         <Marker 
@@ -205,6 +241,7 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData })
           <span className="legend-item"><span className="legend-color" style={{ background: '#f97316' }}></span> Warning (50-75%)</span>
           <span className="legend-item"><span className="legend-color" style={{ background: '#eab308' }}></span> Alert (25-50%)</span>
           <span className="legend-item"><span className="legend-color" style={{ background: '#10b981' }}></span> Watch (&lt;25%)</span>
+          <span className="legend-item"><span className="legend-color" style={{ background: '#ea580c', borderRadius: '50%' }}></span> 📸 Field Incident Pins</span>
         </div>
       </div>
     </MapContainer>
@@ -212,3 +249,4 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData })
 };
 
 export default RiskMap;
+

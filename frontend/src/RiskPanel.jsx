@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const RiskPanel = ({ data, loading, error, locationName }) => {
+const RiskPanel = ({ data, loading, error, locationName, onOpenSmsModal }) => {
   const [alertModal, setAlertModal] = useState(null);
   const [dispatching, setDispatching] = useState(false);
 
@@ -104,12 +104,20 @@ const RiskPanel = ({ data, loading, error, locationName }) => {
         <button className="pdf-btn" onClick={downloadPdfAdvisory}>
           📄 Download NDRF/SDMA Advisory (PDF)
         </button>
+
+        <button 
+          className="sms-dispatch-btn"
+          onClick={() => onOpenSmsModal && onOpenSmsModal({ locationName, lat: coordinates?.latitude, lon: coordinates?.longitude, riskScore: risk_score })}
+        >
+          📱 Dual-Channel SMS Dispatcher
+        </button>
+
         <button 
           className={`alert-btn ${dispatching ? 'dispatching' : ''}`} 
           onClick={triggerAlertSimulation}
           disabled={dispatching}
         >
-          {dispatching ? '📱 Dispatching Alert...' : '📱 Trigger Emergency Alert Simulation'}
+          {dispatching ? '📱 Dispatching Alert...' : '🚨 Trigger Emergency Alert Simulation'}
         </button>
       </div>
 

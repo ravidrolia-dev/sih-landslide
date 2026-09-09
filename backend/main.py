@@ -130,6 +130,7 @@ def get_location_risk(lat: float, lon: float):
     }
 
 from routing_service import get_emergency_priority_list, calculate_evacuation_route
+import field_report_service
 
 @app.get("/emergency/priority-list")
 def get_priority_list():
@@ -149,6 +150,76 @@ def get_evacuation_route(origin_lat: float, origin_lon: float, dest_lat: float =
     avoiding active landslide hazard zones.
     """
     return calculate_evacuation_route(origin_lat, origin_lon, dest_lat, dest_lon)
+
+@app.get("/reports/list")
+def get_field_reports():
+    """
+    Returns all crowd-sourced & field officer ground truth geo-tagged reports.
+    """
+    return {
+        "status": "SUCCESS",
+        "reports": field_report_service.get_all_field_reports()
+    }
+
+@app.post("/reports/submit")
+def submit_field_report(report: dict):
+    """
+    Submits a single geo-tagged field report (photo, severity tag, lat, lon, description).
+    """
+    result = field_report_service.submit_single_report(report)
+    return {
+        "status": "SUCCESS",
+        "message": "Field report successfully submitted and published to live GIS map.",
+        "report": result
+    }
+
+@app.post("/reports/sync")
+def sync_offline_field_reports(batch: dict):
+    """
+    Batch syncs reports captured offline in IndexedDB when network connectivity is restored.
+    """
+    reports_list = batch.get("reports", [])
+    return field_report_service.sync_batch_offline_reports(reports_list)
+
+import sms_service
+
+@app.get("/sms/logs")
+def get_sms_dispatch_logs():
+    """
+    Returns complete history of SMS alert dispatches and carrier delivery receipts.
+    """
+    return {
+        "status": "SUCCESS",
+        "logs": sms_service.get_all_sms_logs()
+    }
+
+@app.post("/sms/send")
+def send_sms_alert_endpoint(payload: dict):
+    """
+    Dispatches emergency SMS alert via MSG91 DLT or Twilio to target phone number.
+    """
+    phone_number = payload.get("phone_number", "+919876543210")
+    location_name = payload.get("location_name", "Queried Area")
+    lat = float(payload.get("latitude", 25.5788))
+    lon = float(payload.get("longitude", 91.8933))
+    risk_score = float(payload.get("risk_score", 82.5))
+    channel = payload.get("channel", "twilio")
+
+    return sms_service.send_sms_alert(phone_number, location_name, lat, lon, risk_score, channel)
+
+@app.post("/sms/auto-broadcast")
+def trigger_auto_sms_broadcast(payload: dict):
+    """
+    Evaluates satellite risk and auto-broadcasts SMS alerts to DEOC & NDRF if risk > 75%.
+    """
+    lat = float(payload.get("latitude", 25.5788))
+    lon = float(payload.get("longitude", 91.8933))
+    location_name = payload.get("location_name", "Severe Hazard Cell")
+    risk_score = float(payload.get("risk_score", 85.0))
+
+    return sms_service.auto_broadcast_severe_alerts(lat, lon, location_name, risk_score)
+
+
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time

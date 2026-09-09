@@ -3,6 +3,7 @@ import './App.css';
 import RiskMap from './RiskMap';
 import RiskPanel from './RiskPanel';
 import EmergencyPanel from './EmergencyPanel';
+import FieldReportPanel from './FieldReportPanel';
 
 const PRESET_LOCATIONS = [
   { name: "Shillong (Meghalaya)", lat: 25.5788, lon: 91.8933 },
@@ -35,7 +36,8 @@ function App() {
   const [riskData, setRiskData] = useState(null);
   const [heatmapData, setHeatmapData] = useState(null);
   const [activeRouteData, setActiveRouteData] = useState(null);
-  const [activeTab, setActiveTab] = useState('gis'); // 'gis' or 'emergency'
+  const [fieldReports, setFieldReports] = useState([]);
+  const [activeTab, setActiveTab] = useState('gis'); // 'gis', 'emergency', or 'reports'
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState(null);
@@ -47,6 +49,18 @@ function App() {
   const [locatingUser, setLocatingUser] = useState(false);
   const [locationStatus, setLocationStatus] = useState(null);
 
+  // Fetch ground-truth field reports for GIS map pins
+  const fetchFieldReports = () => {
+    fetch('http://localhost:8000/reports/list')
+      .then(res => res.json())
+      .then(data => setFieldReports(data.reports || []))
+      .catch(err => console.warn("Failed to fetch field reports:", err));
+  };
+
+  useEffect(() => {
+    fetchFieldReports();
+  }, []);
+
   // Check Backend Health
   useEffect(() => {
     fetch('http://localhost:8000/health')
@@ -54,6 +68,7 @@ function App() {
       .then(data => setBackendStatus({ online: true, message: data.message }))
       .catch(err => setBackendStatus({ online: false, message: 'Backend Offline (http://localhost:8000)' }));
   }, []);
+
 
   // Scan Real-Time User GPS Location
   const handleScanUserLocation = () => {
@@ -219,6 +234,12 @@ function App() {
           >
             🚨 Emergency Operations & Evacuation Control
           </button>
+          <button 
+            className={`nav-tab-btn report-tab ${activeTab === 'reports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reports')}
+          >
+            📸 Field Officer Reporting & Offline Queue
+          </button>
         </div>
 
         <div className="header-status">
@@ -342,6 +363,7 @@ function App() {
                 selectedLocation={selectedLocation} 
                 heatmapData={heatmapData}
                 routeData={activeRouteData}
+                fieldReports={fieldReports}
                 onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
               />
             </div>
@@ -357,10 +379,14 @@ function App() {
             />
           </div>
         </main>
-      ) : (
+      ) : activeTab === 'emergency' ? (
         <EmergencyPanel 
           onSelectRoute={handleSelectRoute}
           activeRouteData={activeRouteData}
+        />
+      ) : (
+        <FieldReportPanel 
+          onReportSubmitted={fetchFieldReports}
         />
       )}
     </div>
@@ -368,3 +394,4 @@ function App() {
 }
 
 export default App;
+
