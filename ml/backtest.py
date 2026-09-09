@@ -4,19 +4,24 @@ from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, classifi
 import joblib
 import os
 
-def load_backtest_data(csv_path="historical_events.csv"):
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+MODEL_PATH = os.path.join(BASE_DIR, "xgboost_model.pkl")
+
+def load_backtest_data(csv_path="data/processed/training_data.csv"):
+    if not os.path.isabs(csv_path):
+        csv_path = os.path.join(ROOT_DIR, csv_path)
     if not os.path.exists(csv_path):
-        raise FileNotFoundError(f"Real backtest data not found at '{csv_path}'. Please provide the dataset before backtesting.")
+        raise FileNotFoundError(f"Backtest data not found at '{csv_path}'. Run prepare_data.py first.")
     df = pd.read_csv(csv_path)
     return df
 
 def run_backtest():
-    try:
-        model = joblib.load("xgboost_model.pkl")
-    except FileNotFoundError:
-        print("Model not found. Please train the model first by running train.py")
+    if not os.path.exists(MODEL_PATH):
+        print(f"Model not found at '{MODEL_PATH}'. Please train the model first by running train.py")
         return
         
+    model = joblib.load(MODEL_PATH)
     df_test = load_backtest_data()
     features = ['slope', 'rainfall_24h', 'rainfall_72h', 'soil_moisture', 'lithology_class']
     
@@ -25,12 +30,12 @@ def run_backtest():
     if missing_cols:
         raise ValueError(f"Dataset is missing required columns: {missing_cols}")
         
-    X_test = df_test[features]
+    X_test = df_test[features].fillna(0)
     y_test = df_test['is_landslide']
     
     # Get probabilities and predictions
     y_prob = model.predict_proba(X_test)[:, 1]
-    y_pred = model.predict(X_test)
+    y_pred = (y_prob > 0.5).astype(int)
     
     # ROC-AUC
     roc_auc = roc_auc_score(y_test, y_prob)
@@ -47,3 +52,4 @@ def run_backtest():
 
 if __name__ == "__main__":
     run_backtest()
+

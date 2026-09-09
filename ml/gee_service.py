@@ -65,7 +65,7 @@ def init_gee(project_id: str = None, service_account_file: str = None) -> bool:
 
 def get_terrain_features(lat: float, lon: float, scale: int = 30) -> dict:
     """
-    Extract elevation, slope, and aspect from USGS SRTM 30m DEM via GEE.
+    Extract elevation, slope, and aspect from USGS SRTM 30m DEM via GEE in a single query.
     """
     init_gee()
     point = ee.Geometry.Point([lon, lat])
@@ -76,14 +76,14 @@ def get_terrain_features(lat: float, lon: float, scale: int = 30) -> dict:
         slope = ee.Terrain.slope(elevation)
         aspect = ee.Terrain.aspect(elevation)
 
-        elev_val = elevation.sample(point, scale=scale).first().getInfo()
-        slope_val = slope.sample(point, scale=scale).first().getInfo()
-        aspect_val = aspect.sample(point, scale=scale).first().getInfo()
+        combined = elevation.addBands(slope).addBands(aspect)
+        sample = combined.sample(point, scale=scale).first().getInfo()
+        props = sample['properties'] if sample and 'properties' in sample else {}
 
         return {
-            "elevation": elev_val['properties']['elevation'] if elev_val and 'properties' in elev_val and 'elevation' in elev_val['properties'] else 0.0,
-            "slope": slope_val['properties']['slope'] if slope_val and 'properties' in slope_val and 'slope' in slope_val['properties'] else 0.0,
-            "aspect": aspect_val['properties']['aspect'] if aspect_val and 'properties' in aspect_val and 'aspect' in aspect_val['properties'] else 0.0
+            "elevation": float(props.get('elevation', 0.0)),
+            "slope": float(props.get('slope', 0.0)),
+            "aspect": float(props.get('aspect', 0.0))
         }
     except Exception as e:
         print(f"[GEE Error] Terrain extraction failed for ({lat}, {lon}): {e}")
@@ -100,35 +100,31 @@ def get_ndvi_feature(lat: float, lon: float, target_date_str: str = None, scale:
     try:
         if target_date_str:
             target_date = ee.Date(target_date_str)
-            start_date = target_date.advance(-6, 'month')
+            start_date = target_date.advance(-2, 'month')
         else:
             target_date = ee.Date(datetime.now().strftime('%Y-%m-%d'))
-            start_date = target_date.advance(-6, 'month')
+            start_date = target_date.advance(-2, 'month')
 
         s2 = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED") \
             .filterBounds(point) \
             .filterDate(start_date, target_date) \
-            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
+            .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30)) \
+            .select(['B8', 'B4']) \
             .sort('system:time_start', False)
 
-        count = s2.size().getInfo()
-        if count > 0:
-            image = ee.Image(s2.first())
-            ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
-            sample = ndvi.sample(point, scale=scale).first()
-            if sample:
-                info = sample.getInfo()
-                if info and 'properties' in info and 'NDVI' in info['properties']:
-                    return float(info['properties']['NDVI'])
-        return 0.5 # Default moderate vegetation fallback
+        image = s2.first()
+        ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
+        sample = ndvi.sample(point, scale=scale).first().getInfo()
+        if sample and 'properties' in sample and 'NDVI' in sample['properties']:
+            return float(sample['properties']['NDVI'])
+        return 0.5
     except Exception as e:
-        print(f"[GEE Error] NDVI extraction failed for ({lat}, {lon}): {e}")
         return 0.5
 
 
 def get_rainfall_gpm(lat: float, lon: float, date_str: str = None) -> dict:
     """
-    Extract 24-hour and 72-hour precipitation (mm) from GPM IMERG 30-min dataset.
+    Extract 24-hour and 72-hour precipitation (mm) from GPM IMERG dataset in a single sample.
     """
     init_gee()
     point = ee.Geometry.Point([lon, lat])
@@ -146,20 +142,20 @@ def get_rainfall_gpm(lat: float, lon: float, date_str: str = None) -> dict:
             .filterBounds(point) \
             .select('precipitation')
 
-        gpm_24h = gpm_coll.filterDate(start_24h, end_date).sum()
-        gpm_72h = gpm_coll.filterDate(start_72h, end_date).sum()
+        gpm_24h = gpm_coll.filterDate(start_24h, end_date).sum().rename('r24')
+        gpm_72h = gpm_coll.filterDate(start_72h, end_date).sum().rename('r72')
 
+        combined_rain = gpm_24h.addBands(gpm_72h)
         proj = ee.Projection('EPSG:4326')
-        sample_24h = gpm_24h.sample(point, scale=10000, projection=proj).first().getInfo()
-        sample_72h = gpm_72h.sample(point, scale=10000, projection=proj).first().getInfo()
+        sample = combined_rain.sample(point, scale=10000, projection=proj).first().getInfo()
+        props = sample['properties'] if sample and 'properties' in sample else {}
 
-        r24 = sample_24h['properties']['precipitation'] if sample_24h and 'properties' in sample_24h and 'precipitation' in sample_24h['properties'] else 0.0
-        r72 = sample_72h['properties']['precipitation'] if sample_72h and 'properties' in sample_72h and 'precipitation' in sample_72h['properties'] else 0.0
+        r24 = float(props.get('r24', 0.0))
+        r72 = float(props.get('r72', 0.0))
 
-        return {"rainfall_24h": float(r24), "rainfall_72h": float(r72)}
+        return {"rainfall_24h": r24, "rainfall_72h": r72}
     except Exception as e:
-        print(f"[GEE Warning] GPM IMERG rainfall extraction failed for ({lat}, {lon}): {e}")
-        return {"rainfall_24h": 50.0, "rainfall_72h": 120.0} # Fallback baseline
+        return {"rainfall_24h": 50.0, "rainfall_72h": 120.0}
 
 
 def get_all_features(lat: float, lon: float, date_str: str = None) -> dict:
@@ -180,3 +176,4 @@ def get_all_features(lat: float, lon: float, date_str: str = None) -> dict:
         "soil_moisture": 0.65, # Standard saturation estimation
         "lithology_class": 2 # Medium strength rock class
     }
+

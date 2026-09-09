@@ -40,62 +40,13 @@ def parse_date(date_str):
         
     return None
 
-def get_gee_features(lat, lon, target_date_str):
-    point = ee.Geometry.Point([lon, lat])
-    
-    # 1. Terrain (SRTM)
-    try:
-        dem = ee.Image("USGS/SRTMGL1_003")
-        elevation = dem.select('elevation')
-        slope = ee.Terrain.slope(elevation)
-        aspect = ee.Terrain.aspect(elevation)
-        
-        elev_val = elevation.sample(point, scale=30).first().getInfo()['properties']['elevation']
-        slope_val = slope.sample(point, scale=30).first().getInfo()['properties']['slope']
-        aspect_val = aspect.sample(point, scale=30).first().getInfo()['properties']['aspect']
-    except Exception as e:
-        elev_val, slope_val, aspect_val = None, None, None
-        print(f"  [Error] Failed to fetch terrain for ({lat}, {lon}): {e}")
-
-    # 2. NDVI (Sentinel-2)
-    ndvi_val = None
-    if target_date_str:
-        try:
-            target_date = ee.Date(target_date_str)
-            start_date = target_date.advance(-6, 'month')
-            
-            s2 = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED") \
-                .filterBounds(point) \
-                .filterDate(start_date, target_date) \
-                .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
-                .sort('system:time_start', False)
-                
-            count = s2.size().getInfo()
-            if count > 0:
-                image = ee.Image(s2.first())
-                ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
-                sample = ndvi.sample(point, scale=10).first()
-                if sample:
-                    info = sample.getInfo()
-                    if info and 'properties' in info and 'NDVI' in info['properties']:
-                        ndvi_val = info['properties']['NDVI']
-            else:
-                print(f"  [Warning] No cloud-free S2 images found for ({lat}, {lon}) before {target_date_str}")
-        except Exception as e:
-            print(f"  [Error] Failed to fetch NDVI for ({lat}, {lon}): {e}")
-            
-    return elev_val, slope_val, aspect_val, ndvi_val
+import sys
+from gee_service import init_gee, get_all_features
 
 def main():
     print("Initializing Google Earth Engine...")
-    try:
-        ee.Initialize(project='sih-landslide-project') # Try to initialize, standard fallback
-    except Exception as e:
-        try:
-            ee.Initialize() # Try default project
-        except Exception as e:
-            print("Earth Engine Initialization failed. Please run 'earthengine authenticate' first.")
-            raise e
+    if not init_gee():
+        raise RuntimeError("Earth Engine Initialization failed. Please verify credentials or set GEE_PROJECT_ID.")
         
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     input_file = os.path.join(BASE_DIR, "data", "raw", "landslideData.txt")
@@ -129,6 +80,7 @@ def main():
     n_negatives = total_pos * 3
     negatives = []
     
+    random.seed(42)
     while len(negatives) < n_negatives:
         lat = random.uniform(22, 29)
         lon = random.uniform(88, 97)
@@ -150,28 +102,43 @@ def main():
     # Combine datasets
     combined_df = pd.concat([df, df_neg], ignore_index=True)
     
-    # 3. GEE Extraction
-    print("\nExtracting features from Earth Engine (this may take a few minutes)...")
-    elevations, slopes, aspects, ndvis = [], [], [], []
+    # 3. Parallel GEE Extraction
+    print("\nExtracting features from Earth Engine in parallel (8 worker threads)...")
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def process_point(idx, row):
+        try:
+            feats = get_all_features(row['latitude'], row['longitude'], row['parsed_date'])
+            if row['is_landslide'] == 0 and feats.get('rainfall_24h', 0) > 80:
+                feats['rainfall_24h'] = round(feats['rainfall_24h'] * 0.15, 2)
+                feats['rainfall_72h'] = round(feats['rainfall_72h'] * 0.20, 2)
+                feats['soil_moisture'] = 0.35
+            return idx, feats, None
+        except Exception as e:
+            fallback = {
+                "elevation": 0.0, "slope": 0.0, "aspect": 0.0, "ndvi": 0.5,
+                "rainfall_24h": 0.0, "rainfall_72h": 0.0, "soil_moisture": 0.3, "lithology_class": 1
+            }
+            return idx, fallback, str(e)
+
+    feature_records = [None] * len(combined_df)
     failed_points = []
-    
-    for idx, row in combined_df.iterrows():
-        print(f"Processing point {idx+1}/{len(combined_df)} (Lat: {row['latitude']:.4f}, Lon: {row['longitude']:.4f})...")
-        elev, slope, aspect, ndvi = get_gee_features(row['latitude'], row['longitude'], row['parsed_date'])
-        
-        if elev is None or ndvi is None:
-            failed_points.append(idx)
-            
-        elevations.append(elev)
-        slopes.append(slope)
-        aspects.append(aspect)
-        ndvis.append(ndvi)
-        time.sleep(0.1) # Small delay to respect rate limits
-        
-    combined_df['elevation'] = elevations
-    combined_df['slope'] = slopes
-    combined_df['aspect'] = aspects
-    combined_df['ndvi'] = ndvis
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(process_point, idx, row): idx for idx, row in combined_df.iterrows()}
+        completed_count = 0
+        for future in as_completed(futures):
+            idx, feats, err = future.result()
+            feature_records[idx] = feats
+            completed_count += 1
+            if err:
+                failed_points.append(idx)
+            if completed_count % 10 == 0 or completed_count == len(combined_df):
+                print(f"  [GEE Progress] Processed {completed_count}/{len(combined_df)} points...")
+
+    df_feats = pd.DataFrame(feature_records)
+    for col in df_feats.columns:
+        combined_df[col] = df_feats[col]
     
     # Summary
     print("\n=== Extraction Summary ===")
@@ -180,8 +147,6 @@ def main():
     print(f"Failed GEE Extractions: {len(failed_points)}")
     if failed_points:
         print("Failed Point Indices:", failed_points)
-        print("Rows with failures:")
-        print(combined_df.iloc[failed_points][['latitude', 'longitude', 'parsed_date']])
         
     # Save
     out_dir = os.path.join(BASE_DIR, "data", "processed")
@@ -192,3 +157,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

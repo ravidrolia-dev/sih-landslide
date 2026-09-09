@@ -43,6 +43,10 @@ def load_data(csv_path):
     return generate_baseline_data()
 
 def train_model(csv_path="data/processed/training_data.csv"):
+    if not os.path.isabs(csv_path):
+        root_dir = os.path.dirname(BASE_DIR)
+        csv_path = os.path.join(root_dir, csv_path)
+        
     df_features = load_data(csv_path)
     features = ['slope', 'rainfall_24h', 'rainfall_72h', 'soil_moisture', 'lithology_class']
     
@@ -50,17 +54,27 @@ def train_model(csv_path="data/processed/training_data.csv"):
     if missing_cols:
         raise ValueError(f"Dataset is missing required columns: {missing_cols}")
         
-    X = df_features[features]
+    X = df_features[features].fillna(0)
     y = df_features['is_landslide']
     
     model = xgb.XGBClassifier(n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42)
     model.fit(X, y)
-    joblib.dump(model, MODEL_PATH)
     
+    # Save model and explainer
+    joblib.dump(model, MODEL_PATH)
     explainer = shap.TreeExplainer(model)
     joblib.dump(explainer, EXPLAINER_PATH)
     
-    print(f"[Train] Model trained successfully and saved to {MODEL_PATH}")
+    # Calculate performance metrics
+    probs = model.predict_proba(X)[:, 1]
+    preds = (probs > 0.5).astype(int)
+    acc = np.mean(preds == y)
+    
+    print(f"[Train] Model trained successfully on {len(df_features)} samples.")
+    print(f"[Train] Training Accuracy: {acc * 100:.2f}%")
+    print(f"[Train] Saved model to: {MODEL_PATH}")
+    print(f"[Train] Saved SHAP explainer to: {EXPLAINER_PATH}")
 
 if __name__ == "__main__":
     train_model()
+
