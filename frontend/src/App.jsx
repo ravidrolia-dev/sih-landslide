@@ -1,30 +1,229 @@
-import { useState, useEffect } from 'react'
-import './App.css'
-import RiskMap from './RiskMap'
+import React, { useState, useEffect } from 'react';
+import './App.css';
+import RiskMap from './RiskMap';
+import RiskPanel from './RiskPanel';
+
+const PRESET_LOCATIONS = [
+  { name: "Shillong (Meghalaya)", lat: 25.5788, lon: 91.8933 },
+  { name: "Haflong (Assam)", lat: 25.1645, lon: 93.0176 },
+  { name: "Lachen (Sikkim)", lat: 27.7315, lon: 88.54865 },
+  { name: "Tamenglong (Manipur)", lat: 24.98793, lon: 93.49529 },
+  { name: "Aizawl (Mizoram)", lat: 23.744, lon: 92.703 },
+  { name: "Itanagar (Arunachal)", lat: 27.0844, lon: 93.6053 },
+  { name: "Kohima (Nagaland)", lat: 25.6747, lon: 94.1100 },
+  { name: "Agartala (Tripura)", lat: 23.8315, lon: 91.2868 }
+];
+
+const STATE_OPTIONS = [
+  "All 8 NER States",
+  "Meghalaya",
+  "Assam",
+  "Sikkim",
+  "Arunachal Pradesh",
+  "Nagaland",
+  "Manipur",
+  "Mizoram",
+  "Tripura"
+];
+
+const CATEGORY_FILTERS = ["All Tiers", "Severe", "Warning", "Alert", "Watch"];
 
 function App() {
-  const [healthStatus, setHealthStatus] = useState("Checking backend...")
+  const [backendStatus, setBackendStatus] = useState({ online: false, message: "Connecting to API..." });
+  const [selectedLocation, setSelectedLocation] = useState({ lat: 25.5788, lon: 91.8933, name: "Shillong (Meghalaya)" });
+  const [riskData, setRiskData] = useState(null);
+  const [heatmapData, setHeatmapData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Filters
+  const [selectedState, setSelectedState] = useState("All 8 NER States");
+  const [selectedCategory, setSelectedCategory] = useState("All Tiers");
+
+  // Check Backend Health
   useEffect(() => {
     fetch('http://localhost:8000/health')
-      .then(response => response.json())
-      .then(data => setHealthStatus(data.message))
-      .catch(err => setHealthStatus("Backend not reachable: " + err.message))
-  }, [])
+      .then(res => res.json())
+      .then(data => setBackendStatus({ online: true, message: data.message }))
+      .catch(err => setBackendStatus({ online: false, message: 'Backend Offline (http://localhost:8000)' }));
+  }, []);
+
+  // Fetch Spatial Risk Heatmap GeoJSON from Live GEE
+  const fetchHeatmap = (forceRefresh = false) => {
+    setScanning(true);
+    let url = 'http://localhost:8000/risk/heatmap';
+    const params = new URLSearchParams();
+    if (selectedState !== "All 8 NER States") {
+      params.append('district', selectedState);
+    }
+    if (selectedCategory !== "All Tiers") {
+      params.append('category', selectedCategory);
+    }
+    if (forceRefresh) {
+      params.append('refresh', 'true');
+    }
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        setHeatmapData(data);
+        setScanning(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch GEE heatmap:", err);
+        setScanning(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchHeatmap(false);
+  }, [selectedState, selectedCategory]);
+
+  // Fetch GEE Location Risk for single point
+  const fetchRiskForLocation = async (lat, lon, name = null) => {
+    setLoading(true);
+    setError(null);
+    setSelectedLocation({ lat, lon, name });
+
+    try {
+      const response = await fetch(`http://localhost:8000/risk/location?lat=${lat}&lon=${lon}`);
+      if (!response.ok) {
+        throw new Error(`API Error ${response.status}: Failed to extract satellite risk metrics`);
+      }
+      const data = await response.json();
+      setRiskData(data);
+      if (data && data.category) {
+        setSelectedLocation(prev => ({ ...prev, category: data.category }));
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to reach backend risk service.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch for Shillong
+  useEffect(() => {
+    fetchRiskForLocation(25.5788, 91.8933, "Shillong (Meghalaya)");
+  }, []);
 
   return (
-    <div className="App" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Landslide Risk Dashboard</h1>
-      
-      <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', textAlign: 'center' }}>
-        <p style={{ margin: 0 }}>Backend Status: <strong>{healthStatus}</strong></p>
+    <div className="app-container">
+      {/* Header Bar */}
+      <header className="app-header">
+        <div className="brand">
+          <span className="brand-logo">⛰️</span>
+          <div>
+            <h1>NE-GeoAlert</h1>
+            <p>100% Real-Time GEE Satellite Risk Scan across All 8 North-Eastern States of India</p>
+          </div>
+        </div>
+
+        <div className="header-status">
+          <button 
+            className={`rescan-btn ${scanning ? 'scanning' : ''}`}
+            onClick={() => fetchHeatmap(true)}
+            disabled={scanning}
+          >
+            {scanning ? '⚡ Scanning GEE Satellites...' : '⚡ Rescan GEE Satellite Feed'}
+          </button>
+
+          <div className={`status-pill ${backendStatus.online ? 'online' : 'offline'}`}>
+            <span className="status-dot"></span>
+            <span>{backendStatus.message}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Preset & Filter Bar */}
+      <div className="filter-panel">
+        <div className="preset-bar">
+          <span className="preset-label">📍 High-Risk City Presets:</span>
+          <div className="preset-buttons">
+            {PRESET_LOCATIONS.map((loc, idx) => (
+              <button
+                key={idx}
+                className={`preset-btn ${selectedLocation.name === loc.name ? 'active' : ''}`}
+                onClick={() => fetchRiskForLocation(loc.lat, loc.lon, loc.name)}
+              >
+                {loc.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Spatial Grid Filters */}
+        <div className="grid-filters">
+          <div className="filter-group">
+            <span className="filter-label">🗺️ State Coverage Filter:</span>
+            <select 
+              className="filter-select"
+              value={selectedState} 
+              onChange={e => setSelectedState(e.target.value)}
+            >
+              {STATE_OPTIONS.map((st, i) => (
+                <option key={i} value={st}>{st}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <span className="filter-label">⚠️ Risk Tier Filter:</span>
+            <div className="tier-buttons">
+              {CATEGORY_FILTERS.map((cat, i) => (
+                <button
+                  key={i}
+                  className={`tier-btn ${cat.toLowerCase().replace(' ', '-')} ${selectedCategory === cat ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div style={{ width: '100%', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-        <RiskMap />
-      </div>
+      {/* Main Split Content */}
+      <main className="dashboard-grid">
+        {/* Map View */}
+        <div className="map-card">
+          <div className="card-header">
+            <span className="card-title">
+              🌐 Live GEE Satellite Grid ({heatmapData?.features?.length || 0} Cells across All 8 States)
+            </span>
+            {heatmapData?.summary?.cache_age_seconds !== undefined && (
+              <span className="hint-tag">
+                {scanning ? 'Updating live satellite feed...' : `GEE Feed Age: ${heatmapData.summary.cache_age_seconds}s`}
+              </span>
+            )}
+          </div>
+          <div className="map-wrapper">
+            <RiskMap 
+              selectedLocation={selectedLocation} 
+              heatmapData={heatmapData}
+              onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
+            />
+          </div>
+        </div>
+
+        {/* Intelligence Side Panel */}
+        <div className="side-panel">
+          <RiskPanel 
+            data={riskData} 
+            loading={loading} 
+            error={error} 
+            locationName={selectedLocation.name}
+          />
+        </div>
+      </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
