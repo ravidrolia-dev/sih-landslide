@@ -8,3 +8,6 @@ shap
 pandas
 scikit-learn
 joblib
+networkx
+earthengine-api
+

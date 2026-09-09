@@ -2,6 +2,8 @@
 
 An AI/ML & Geospatial Early Warning System designed to predict landslide risk, generate real-time grid and village-level risk scores, and present dynamic alerts for disaster management authorities and citizens.
 
+👉 **[View Full SIH Prototype Build Plan & Feature List Document](file:///a:/SIH2026/SIH_landslide/sih_26/SIH_BUILD_PLAN.md)**
+
 ---
 
 ## 🏗️ System Architecture

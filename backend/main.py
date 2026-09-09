@@ -129,6 +129,27 @@ def get_location_risk(lat: float, lon: float):
         }
     }
 
+from routing_service import get_emergency_priority_list, calculate_evacuation_route
+
+@app.get("/emergency/priority-list")
+def get_priority_list():
+    """
+    Returns auto-ranked Emergency Response Prioritisation List for District Collectors.
+    Formula: Priority Score = Risk Score x Population Exposure
+    """
+    return {
+        "formula": "Priority Score = Risk Score (0-100) x Population Exposure Factor",
+        "priority_queue": get_emergency_priority_list()
+    }
+
+@app.get("/emergency/evacuation-route")
+def get_evacuation_route(origin_lat: float, origin_lon: float, dest_lat: float = None, dest_lon: float = None):
+    """
+    Uses NetworkX Dijkstra algorithm to compute the shortest safe evacuation route
+    avoiding active landslide hazard zones.
+    """
+    return calculate_evacuation_route(origin_lat, origin_lon, dest_lat, dest_lon)
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 

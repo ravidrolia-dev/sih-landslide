@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import RiskMap from './RiskMap';
 import RiskPanel from './RiskPanel';
+import EmergencyPanel from './EmergencyPanel';
 
 const PRESET_LOCATIONS = [
   { name: "Shillong (Meghalaya)", lat: 25.5788, lon: 91.8933 },
@@ -33,6 +34,8 @@ function App() {
   const [selectedLocation, setSelectedLocation] = useState({ lat: 25.5788, lon: 91.8933, name: "Shillong (Meghalaya)" });
   const [riskData, setRiskData] = useState(null);
   const [heatmapData, setHeatmapData] = useState(null);
+  const [activeRouteData, setActiveRouteData] = useState(null);
+  const [activeTab, setActiveTab] = useState('gis'); // 'gis' or 'emergency'
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState(null);
@@ -160,6 +163,36 @@ function App() {
     fetchRiskForLocation(25.5788, 91.8933, "Shillong (Meghalaya)");
   }, []);
 
+  // Fetch Dijkstra evacuation route for a settlement
+  const handleSelectRoute = async (lat, lon, name) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`http://localhost:8000/emergency/evacuation-route?origin_lat=${lat}&origin_lon=${lon}`);
+      if (!response.ok) {
+        throw new Error(`Routing API Error ${response.status}: Failed to compute evacuation path`);
+      }
+      const routeResult = await response.json();
+      setActiveRouteData(routeResult);
+      setSelectedLocation({
+        lat: lat,
+        lon: lon,
+        name: `📍 Evacuation Origin: ${name}`
+      });
+      // Switch back to GIS Map tab to display the interactive route polyline
+      setActiveTab('gis');
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to calculate Dijkstra evacuation route.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearEvacuationRoute = () => {
+    setActiveRouteData(null);
+  };
+
   return (
     <div className="app-container">
       {/* Header Bar */}
@@ -168,8 +201,24 @@ function App() {
           <span className="brand-logo">⛰️</span>
           <div>
             <h1>NE-GeoAlert</h1>
-            <p>100% Real-Time GEE Satellite Risk Scan across All 8 North-Eastern States of India</p>
+            <p>100% Real-Time GEE Satellite Risk Scan & Emergency Evacuation Control</p>
           </div>
+        </div>
+
+        {/* View Mode Navigation Tabs */}
+        <div className="tab-navigation">
+          <button 
+            className={`nav-tab-btn ${activeTab === 'gis' ? 'active' : ''}`}
+            onClick={() => setActiveTab('gis')}
+          >
+            🌐 Live GIS Map & ML Risk
+          </button>
+          <button 
+            className={`nav-tab-btn emergency-tab ${activeTab === 'emergency' ? 'active' : ''}`}
+            onClick={() => setActiveTab('emergency')}
+          >
+            🚨 Emergency Operations & Evacuation Control
+          </button>
         </div>
 
         <div className="header-status">
@@ -197,102 +246,123 @@ function App() {
         </div>
       </header>
 
-      {/* Preset & Filter Bar */}
-      <div className="filter-panel">
-        {locationStatus && (
-          <div className="gps-status-banner">
-            <span>{locationStatus}</span>
-          </div>
-        )}
+      {/* Preset & Filter Bar (Shown in GIS mode) */}
+      {activeTab === 'gis' && (
+        <div className="filter-panel">
+          {locationStatus && (
+            <div className="gps-status-banner">
+              <span>{locationStatus}</span>
+            </div>
+          )}
 
-        <div className="preset-bar">
-          <span className="preset-label">📍 Quick Location Presets:</span>
-          <div className="preset-buttons">
-            <button
-              className={`preset-btn gps-preset ${selectedLocation.name?.startsWith('🎯') ? 'active' : ''}`}
-              onClick={handleScanUserLocation}
-              disabled={locatingUser}
-            >
-              🎯 My Live GPS Location
-            </button>
-
-            {PRESET_LOCATIONS.map((loc, idx) => (
-              <button
-                key={idx}
-                className={`preset-btn ${selectedLocation.name === loc.name ? 'active' : ''}`}
-                onClick={() => fetchRiskForLocation(loc.lat, loc.lon, loc.name)}
-              >
-                {loc.name}
+          {activeRouteData && (
+            <div className="active-route-banner">
+              <span>
+                🚨 <strong>Active Evacuation Route:</strong> Path panned to safe hub <strong>{activeRouteData.destination?.nearest_safe_hub}</strong> ({activeRouteData.distance_km} km, {activeRouteData.estimated_time_mins} mins transit time).
+              </span>
+              <button className="clear-route-btn" onClick={clearEvacuationRoute}>
+                ❌ Clear Route Overlay
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
 
-        {/* Spatial Grid Filters */}
-        <div className="grid-filters">
-          <div className="filter-group">
-            <span className="filter-label">🗺️ State Coverage Filter:</span>
-            <select 
-              className="filter-select"
-              value={selectedState} 
-              onChange={e => setSelectedState(e.target.value)}
-            >
-              {STATE_OPTIONS.map((st, i) => (
-                <option key={i} value={st}>{st}</option>
-              ))}
-            </select>
-          </div>
+          <div className="preset-bar">
+            <span className="preset-label">📍 Quick Location Presets:</span>
+            <div className="preset-buttons">
+              <button
+                className={`preset-btn gps-preset ${selectedLocation.name?.startsWith('🎯') ? 'active' : ''}`}
+                onClick={handleScanUserLocation}
+                disabled={locatingUser}
+              >
+                🎯 My Live GPS Location
+              </button>
 
-          <div className="filter-group">
-            <span className="filter-label">⚠️ Risk Tier Filter:</span>
-            <div className="tier-buttons">
-              {CATEGORY_FILTERS.map((cat, i) => (
+              {PRESET_LOCATIONS.map((loc, idx) => (
                 <button
-                  key={i}
-                  className={`tier-btn ${cat.toLowerCase().replace(' ', '-')} ${selectedCategory === cat ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(cat)}
+                  key={idx}
+                  className={`preset-btn ${selectedLocation.name === loc.name ? 'active' : ''}`}
+                  onClick={() => fetchRiskForLocation(loc.lat, loc.lon, loc.name)}
                 >
-                  {cat}
+                  {loc.name}
                 </button>
               ))}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Split Content */}
-      <main className="dashboard-grid">
-        {/* Map View */}
-        <div className="map-card">
-          <div className="card-header">
-            <span className="card-title">
-              🌐 Live GEE Satellite Grid ({heatmapData?.features?.length || 0} Cells across All 8 States)
-            </span>
-            {heatmapData?.summary?.cache_age_seconds !== undefined && (
-              <span className="hint-tag">
-                {scanning ? 'Updating live satellite feed...' : `GEE Feed Age: ${heatmapData.summary.cache_age_seconds}s`}
-              </span>
-            )}
+          {/* Spatial Grid Filters */}
+          <div className="grid-filters">
+            <div className="filter-group">
+              <span className="filter-label">🗺️ State Coverage Filter:</span>
+              <select 
+                className="filter-select"
+                value={selectedState} 
+                onChange={e => setSelectedState(e.target.value)}
+              >
+                {STATE_OPTIONS.map((st, i) => (
+                  <option key={i} value={st}>{st}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <span className="filter-label">⚠️ Risk Tier Filter:</span>
+              <div className="tier-buttons">
+                {CATEGORY_FILTERS.map((cat, i) => (
+                  <button
+                    key={i}
+                    className={`tier-btn ${cat.toLowerCase().replace(' ', '-')} ${selectedCategory === cat ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="map-wrapper">
-            <RiskMap 
-              selectedLocation={selectedLocation} 
-              heatmapData={heatmapData}
-              onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
+        </div>
+      )}
+
+      {/* Main View Content */}
+      {activeTab === 'gis' ? (
+        <main className="dashboard-grid">
+          {/* Map View */}
+          <div className="map-card">
+            <div className="card-header">
+              <span className="card-title">
+                🌐 Live GEE Satellite Grid ({heatmapData?.features?.length || 0} Cells across All 8 States)
+              </span>
+              {heatmapData?.summary?.cache_age_seconds !== undefined && (
+                <span className="hint-tag">
+                  {scanning ? 'Updating live satellite feed...' : `GEE Feed Age: ${heatmapData.summary.cache_age_seconds}s`}
+                </span>
+              )}
+            </div>
+            <div className="map-wrapper">
+              <RiskMap 
+                selectedLocation={selectedLocation} 
+                heatmapData={heatmapData}
+                routeData={activeRouteData}
+                onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
+              />
+            </div>
+          </div>
+
+          {/* Intelligence Side Panel */}
+          <div className="side-panel">
+            <RiskPanel 
+              data={riskData} 
+              loading={loading} 
+              error={error} 
+              locationName={selectedLocation.name}
             />
           </div>
-        </div>
-
-        {/* Intelligence Side Panel */}
-        <div className="side-panel">
-          <RiskPanel 
-            data={riskData} 
-            loading={loading} 
-            error={error} 
-            locationName={selectedLocation.name}
-          />
-        </div>
-      </main>
+        </main>
+      ) : (
+        <EmergencyPanel 
+          onSelectRoute={handleSelectRoute}
+          activeRouteData={activeRouteData}
+        />
+      )}
     </div>
   );
 }

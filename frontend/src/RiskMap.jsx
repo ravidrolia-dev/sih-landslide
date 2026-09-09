@@ -1,16 +1,24 @@
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, LayersControl, WMSTileLayer, Marker, Popup, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, LayersControl, WMSTileLayer, Marker, Popup, GeoJSON, Polyline, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Component to auto-fly map to selected or user location
-const MapViewUpdater = ({ targetLoc }) => {
+// Component to auto-fly map to selected location or fit bounds to active evacuation route
+const MapViewUpdater = ({ targetLoc, routeData }) => {
   const map = useMap();
   useEffect(() => {
+    if (routeData && routeData.route_geojson && routeData.route_geojson.geometry.coordinates) {
+      const coords = routeData.route_geojson.geometry.coordinates.map(c => [c[1], c[0]]);
+      if (coords.length > 0) {
+        const bounds = L.latLngBounds(coords);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, duration: 1.5 });
+        return;
+      }
+    }
     if (targetLoc && targetLoc.lat && targetLoc.lon) {
       map.flyTo([targetLoc.lat, targetLoc.lon], 11, { duration: 1.5 });
     }
-  }, [targetLoc?.lat, targetLoc?.lon]);
+  }, [targetLoc?.lat, targetLoc?.lon, routeData]);
   return null;
 };
 
@@ -49,7 +57,7 @@ const getCategoryColor = (cat) => {
   }
 };
 
-const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData }) => {
+const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData }) => {
   // Center map on overall North-East India region
   const center = [26.0, 92.8]; 
   const zoom = 7;
@@ -87,7 +95,7 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData }) => {
   return (
     <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', borderRadius: '12px' }}>
       <MapClickHandler onLocationSelect={onLocationSelect} />
-      <MapViewUpdater targetLoc={selectedLocation} />
+      <MapViewUpdater targetLoc={selectedLocation} routeData={routeData} />
       
       <LayersControl position="topright">
         <BaseLayer checked name="OpenTopoMap (Topographic)">
@@ -135,6 +143,40 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData }) => {
           />
         </Overlay>
       </LayersControl>
+
+      {/* 100% Real Turn-By-Turn Highway Evacuation Route Polyline & Safe Shelter Destination Marker */}
+      {routeData && routeData.route_geojson && (
+        <>
+          {/* Outer glow stroke line */}
+          <Polyline 
+            positions={routeData.route_geojson.geometry.coordinates.map(c => [c[1], c[0]])} 
+            pathOptions={{ color: '#0284c7', weight: 8, opacity: 0.6 }} 
+          />
+          {/* Inner solid high-visibility road polyline */}
+          <Polyline 
+            positions={routeData.route_geojson.geometry.coordinates.map(c => [c[1], c[0]])} 
+            pathOptions={{ color: '#38bdf8', weight: 5, opacity: 1.0 }} 
+          />
+          {routeData.destination && (
+            <Marker 
+              position={[routeData.destination.latitude, routeData.destination.longitude]}
+              icon={createCustomIcon('#3b82f6')}
+            >
+              <Popup>
+                <div style={{ padding: '6px', textAlign: 'center' }}>
+                  <strong style={{ fontSize: '13px', color: '#2563eb' }}>
+                    🏁 Safe Relief Hub: {routeData.destination.nearest_safe_hub}
+                  </strong>
+                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                    Safe Evacuation Distance: <strong>{routeData.distance_km} km</strong><br/>
+                    Est. Transit Time: <strong>{routeData.estimated_time_mins} mins</strong>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+        </>
+      )}
 
       {/* Selected Location Marker Pin */}
       {selectedLocation && (
