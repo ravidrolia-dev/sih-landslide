@@ -7,3 +7,4 @@ shap
 geopandas
 shapely
 earthengine-api
+joblib

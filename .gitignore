@@ -1,0 +1,55 @@
+# Environment & Secrets
+.env
+.env.local
+*.env
+*.pem
+*.key
+*.json_key
+service_account*.json
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Python / Byte-compiled / Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.oxlintrc.json
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Logs & Temporary Files
+*.log
+logs/
+tmp/
+temp/
+
+# Large Model / Data Artifacts
+ml/*.joblib
+ml/*.pkl
+ml/*.pt
+ml/*.h5
+ml/*.onnx
+!ml/.gitkeep

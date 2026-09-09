@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import joblib
 import os
 
@@ -19,25 +20,25 @@ def predict_risk(features_dict):
     df = pd.DataFrame([features_dict])
     
     # Predict probability
-    prob = model.predict_proba(df)[0][1]
-    score = prob * 100
+    prob = float(model.predict_proba(df)[0][1])
+    score = float(prob * 100)
     
     # Compute SHAP values
     shap_values = explainer.shap_values(df)
     
     breakdown = {}
-    # shap_values could be a list (for multi-class) or an array (binary)
-    # for xgboost binary, it's usually an array
     if isinstance(shap_values, list):
-        vals = shap_values[1][0] # class 1
+        vals = shap_values[1][0]
     else:
         vals = shap_values[0]
         
     for i, col in enumerate(df.columns):
         breakdown[col] = float(vals[i])
         
+    base_val = float(explainer.expected_value[1] if isinstance(explainer.expected_value, (list, np.ndarray)) else explainer.expected_value)
+
     return {
         "score": round(score, 2),
         "shap_breakdown": breakdown,
-        "base_value": float(explainer.expected_value[1] if isinstance(explainer.expected_value, list) or isinstance(explainer.expected_value, np.ndarray) else explainer.expected_value)
+        "base_value": round(base_val, 4)
     }

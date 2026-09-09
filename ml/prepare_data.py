@@ -97,7 +97,8 @@ def main():
             print("Earth Engine Initialization failed. Please run 'earthengine authenticate' first.")
             raise e
         
-    input_file = r"d:\SIH\data\raw\landslideData.txt"
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_file = os.path.join(BASE_DIR, "data", "raw", "landslideData.txt")
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Raw data not found at {input_file}")
         
@@ -183,7 +184,7 @@ def main():
         print(combined_df.iloc[failed_points][['latitude', 'longitude', 'parsed_date']])
         
     # Save
-    out_dir = r"d:\SIH\data\processed"
+    out_dir = os.path.join(BASE_DIR, "data", "processed")
     os.makedirs(out_dir, exist_ok=True)
     out_file = os.path.join(out_dir, "training_data.csv")
     combined_df.to_csv(out_file, index=False)
