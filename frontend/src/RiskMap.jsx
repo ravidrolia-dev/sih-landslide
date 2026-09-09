@@ -1,7 +1,18 @@
-import React from 'react';
-import { MapContainer, TileLayer, LayersControl, WMSTileLayer, Marker, Popup, GeoJSON, useMapEvents } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, LayersControl, WMSTileLayer, Marker, Popup, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Component to auto-fly map to selected or user location
+const MapViewUpdater = ({ targetLoc }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (targetLoc && targetLoc.lat && targetLoc.lon) {
+      map.flyTo([targetLoc.lat, targetLoc.lon], 11, { duration: 1.5 });
+    }
+  }, [targetLoc?.lat, targetLoc?.lon]);
+  return null;
+};
 
 // Custom SVG pin marker for Leaflet
 const createCustomIcon = (color = '#ef4444') => {
@@ -76,6 +87,7 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData }) => {
   return (
     <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', borderRadius: '12px' }}>
       <MapClickHandler onLocationSelect={onLocationSelect} />
+      <MapViewUpdater targetLoc={selectedLocation} />
       
       <LayersControl position="topright">
         <BaseLayer checked name="OpenTopoMap (Topographic)">

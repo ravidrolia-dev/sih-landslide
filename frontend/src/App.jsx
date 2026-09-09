@@ -41,6 +41,9 @@ function App() {
   const [selectedState, setSelectedState] = useState("All 8 NER States");
   const [selectedCategory, setSelectedCategory] = useState("All Tiers");
 
+  const [locatingUser, setLocatingUser] = useState(false);
+  const [locationStatus, setLocationStatus] = useState(null);
+
   // Check Backend Health
   useEffect(() => {
     fetch('http://localhost:8000/health')
@@ -48,6 +51,51 @@ function App() {
       .then(data => setBackendStatus({ online: true, message: data.message }))
       .catch(err => setBackendStatus({ online: false, message: 'Backend Offline (http://localhost:8000)' }));
   }, []);
+
+  // Scan Real-Time User GPS Location
+  const handleScanUserLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setLocatingUser(true);
+    setError(null);
+    setLocationStatus("Acquiring GPS Signal...");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = Number(position.coords.latitude.toFixed(4));
+        const lon = Number(position.coords.longitude.toFixed(4));
+        const accuracy = Math.round(position.coords.accuracy);
+
+        const statusMsg = `🎯 GPS Locked: ${lat}°N, ${lon}°E (±${accuracy}m accuracy)`;
+        setLocationStatus(statusMsg);
+        setLocatingUser(false);
+
+        // Extract GEE Satellite metrics & XGBoost risk prediction for user's real-time position
+        fetchRiskForLocation(
+          lat, 
+          lon, 
+          `🎯 My Live GPS Location (${lat}°, ${lon}°)`
+        );
+      },
+      (err) => {
+        setLocatingUser(false);
+        setLocationStatus(null);
+        let errMsg = "Unable to retrieve your location.";
+        if (err.code === 1) {
+          errMsg = "GPS permission denied. Please allow location access in your browser.";
+        } else if (err.code === 2) {
+          errMsg = "GPS position unavailable. Check network or location services.";
+        } else if (err.code === 3) {
+          errMsg = "GPS location request timed out.";
+        }
+        setError(errMsg);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
 
   // Fetch Spatial Risk Heatmap GeoJSON from Live GEE
   const fetchHeatmap = (forceRefresh = false) => {
@@ -126,6 +174,15 @@ function App() {
 
         <div className="header-status">
           <button 
+            className={`gps-scan-btn ${locatingUser ? 'locating' : ''}`}
+            onClick={handleScanUserLocation}
+            disabled={locatingUser}
+            title="Scan your current GPS location and fetch satellite risk & prediction"
+          >
+            {locatingUser ? '🛰️ Locating GPS Signal...' : '🎯 Scan My Real-Time Location'}
+          </button>
+
+          <button 
             className={`rescan-btn ${scanning ? 'scanning' : ''}`}
             onClick={() => fetchHeatmap(true)}
             disabled={scanning}
@@ -142,9 +199,23 @@ function App() {
 
       {/* Preset & Filter Bar */}
       <div className="filter-panel">
+        {locationStatus && (
+          <div className="gps-status-banner">
+            <span>{locationStatus}</span>
+          </div>
+        )}
+
         <div className="preset-bar">
-          <span className="preset-label">📍 High-Risk City Presets:</span>
+          <span className="preset-label">📍 Quick Location Presets:</span>
           <div className="preset-buttons">
+            <button
+              className={`preset-btn gps-preset ${selectedLocation.name?.startsWith('🎯') ? 'active' : ''}`}
+              onClick={handleScanUserLocation}
+              disabled={locatingUser}
+            >
+              🎯 My Live GPS Location
+            </button>
+
             {PRESET_LOCATIONS.map((loc, idx) => (
               <button
                 key={idx}
