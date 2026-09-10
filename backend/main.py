@@ -40,9 +40,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "Backend is running!"}
+    return {"status": "ok", "message": "NE-GeoAlert Landslide Risk API Engine is Live!"}
 
 @app.get("/risk/grid")
 def get_grid_risk(db: Session = Depends(get_db)):
