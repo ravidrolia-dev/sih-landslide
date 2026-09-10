@@ -1,3 +1,4 @@
+# NE-GeoAlert Backend API v1.2.0 (GEE Graceful Fallback & Health Check Enabled)
 import json
 import random
 import sys
