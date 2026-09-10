@@ -2,6 +2,8 @@ import json
 import random
 import sys
 import os
+import urllib.request
+import urllib.parse
 
 # Ensure backend directory is in sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -129,7 +131,7 @@ def get_location_risk(lat: float, lon: float):
         }
     }
 
-from routing_service import get_emergency_priority_list, calculate_evacuation_route
+from routing_service import get_emergency_priority_list, calculate_safe_alternative_route, check_route_landslide_risk
 import field_report_service
 
 @app.get("/emergency/priority-list")
@@ -144,12 +146,57 @@ def get_priority_list():
     }
 
 @app.get("/emergency/evacuation-route")
-def get_evacuation_route(origin_lat: float, origin_lon: float, dest_lat: float = None, dest_lon: float = None):
+def get_evacuation_route(origin_lat: float, origin_lon: float, dest_lat: float = None, dest_lon: float = None, safety_buffer_km: float = 1.5):
     """
-    Uses NetworkX Dijkstra algorithm to compute the shortest safe evacuation route
-    avoiding active landslide hazard zones.
+    Computes a Dynamic Landslide-Safe Route avoiding active landslides and high-risk hazard zones.
+    If the original shortest route is blocked by a recent landslide, automatically detours around it.
     """
-    return calculate_evacuation_route(origin_lat, origin_lon, dest_lat, dest_lon)
+    return calculate_safe_alternative_route(origin_lat, origin_lon, dest_lat, dest_lon, safety_buffer_km)
+
+@app.post("/emergency/check-route-risk")
+def check_active_route_risk(payload: dict):
+    """
+    Live dynamic monitoring endpoint: checks whether active route coordinates intersect
+    newly submitted field reports or satellite risk updates.
+    """
+    route_coords = payload.get("route_coords", [])
+    buffer_km = float(payload.get("safety_buffer_km", 1.5))
+    return check_route_landslide_risk(route_coords, buffer_km=buffer_km)
+
+@app.get("/geocode/search")
+def search_places_geocoding(q: str):
+    """
+    Real-time Google Maps-style geocoding search for any place, landmark, city, or address across India.
+    Powered by OpenStreetMap Nominatim with local formatting.
+    """
+    if not q or len(q.strip()) < 2:
+        return {"status": "SUCCESS", "results": []}
+
+    query_str = q.strip()
+    try:
+        url = f"https://nominatim.openstreetmap.org/search?format=json&q={urllib.parse.quote(query_str)}&countrycodes=in&limit=8"
+        req = urllib.request.Request(url, headers={'User-Agent': 'NE-GeoAlert-GIS/1.0'})
+        with urllib.request.urlopen(req, timeout=4) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            results = []
+            for item in data:
+                display = item.get("display_name", "")
+                parts = [p.strip() for p in display.split(",") if p.strip()]
+                short_name = parts[0] if parts else query_str
+                address_sub = ", ".join(parts[1:4]) if len(parts) > 1 else display
+
+                results.append({
+                    "name": short_name,
+                    "display_name": display,
+                    "subtitle": address_sub,
+                    "latitude": float(item["lat"]),
+                    "longitude": float(item["lon"]),
+                    "place_type": item.get("type", "location")
+                })
+            return {"status": "SUCCESS", "results": results}
+    except Exception as e:
+        print(f"[Geocode Error] Search failed for '{query_str}': {e}")
+        return {"status": "ERROR", "results": [], "message": str(e)}
 
 @app.get("/reports/list")
 def get_field_reports():
@@ -204,8 +251,10 @@ def send_sms_alert_endpoint(payload: dict):
     lon = float(payload.get("longitude", 91.8933))
     risk_score = float(payload.get("risk_score", 82.5))
     channel = payload.get("channel", "twilio")
+    credentials = payload.get("credentials", {})
 
-    return sms_service.send_sms_alert(phone_number, location_name, lat, lon, risk_score, channel)
+    return sms_service.send_sms_alert(phone_number, location_name, lat, lon, risk_score, channel, credentials)
+
 
 @app.post("/sms/auto-broadcast")
 def trigger_auto_sms_broadcast(payload: dict):

@@ -3,15 +3,22 @@ import { MapContainer, TileLayer, LayersControl, WMSTileLayer, Marker, Popup, Ge
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Component to auto-fly map to selected location or fit bounds to active evacuation route
+// Component to auto-fly map or fit bounds to active evacuation route
 const MapViewUpdater = ({ targetLoc, routeData }) => {
   const map = useMap();
   useEffect(() => {
-    if (routeData && routeData.route_geojson && routeData.route_geojson.geometry.coordinates) {
+    if (routeData && routeData.safe_route_geojson && routeData.safe_route_geojson.geometry?.coordinates) {
+      const coords = routeData.safe_route_geojson.geometry.coordinates.map(c => [c[1], c[0]]);
+      if (coords.length > 0) {
+        const bounds = L.latLngBounds(coords);
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13, duration: 1.5 });
+        return;
+      }
+    } else if (routeData && routeData.route_geojson && routeData.route_geojson.geometry?.coordinates) {
       const coords = routeData.route_geojson.geometry.coordinates.map(c => [c[1], c[0]]);
       if (coords.length > 0) {
         const bounds = L.latLngBounds(coords);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, duration: 1.5 });
+        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13, duration: 1.5 });
         return;
       }
     }
@@ -23,7 +30,21 @@ const MapViewUpdater = ({ targetLoc, routeData }) => {
 };
 
 // Custom SVG pin marker for Leaflet
-const createCustomIcon = (color = '#ef4444') => {
+const createCustomIcon = (color = '#ef4444', iconSymbol = null) => {
+  if (iconSymbol === 'landslide') {
+    const hazardSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#dc2626" width="36" height="36">
+        <path d="M12 2L1 21h22L12 2zm0 3.5L20 19H4L12 5.5zM11 10h2v4h-2zm0 5h2v2h-2z"/>
+      </svg>`;
+    return L.divIcon({
+      className: 'custom-leaflet-marker hazard-block-marker',
+      html: hazardSvg,
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      popupAnchor: [0, -36]
+    });
+  }
+
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" width="32" height="32">
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -50,15 +71,14 @@ const { BaseLayer, Overlay } = LayersControl;
 
 const getCategoryColor = (cat) => {
   switch (cat) {
-    case 'Severe': return '#ef4444';
-    case 'Warning': return '#f97316';
-    case 'Alert': return '#eab308';
-    default: return '#10b981';
+    case 'Severe': return '#ef4444'; // Red
+    case 'Warning': return '#f97316'; // Orange
+    case 'Alert': return '#eab308'; // Yellow
+    default: return '#10b981'; // Green
   }
 };
 
-const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, fieldReports }) => {
-  // Center map on overall North-East India region
+const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, fieldReports, onClearRoute }) => {
   const center = [26.0, 92.8]; 
   const zoom = 7;
 
@@ -77,9 +97,9 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
     const p = feature.properties;
     const catColor = getCategoryColor(p.category);
     layer.bindTooltip(`
-      <div style="font-family: sans-serif; padding: 4px; line-height: 1.4;">
+      <div style="font-family: system-ui, sans-serif; padding: 4px; line-height: 1.4;">
         <strong style="color: ${catColor}; font-size: 13px;">${p.district} (${p.state}) • ${p.category}</strong><br/>
-        <span>Real-Time GEE Risk: <strong>${p.risk_score}%</strong></span><br/>
+        <span>Landslide Risk: <strong>${p.risk_score}%</strong></span><br/>
         <span style="font-size: 11px; color: #64748b;">Slope: ${p.slope}° | 72h Rain: ${p.rainfall_72h}mm</span>
       </div>
     `, { sticky: true });
@@ -92,161 +112,261 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
     });
   };
 
+  // Safe Route coordinates
+  const safeCoords = routeData?.safe_route_geojson?.geometry?.coordinates?.map(c => [c[1], c[0]]) ||
+                    routeData?.route_geojson?.geometry?.coordinates?.map(c => [c[1], c[0]]) || [];
+
+  // Original Blocked Route coordinates (if rerouted)
+  const origCoords = routeData?.original_route_geojson?.geometry?.coordinates?.map(c => [c[1], c[0]]) || [];
+
+  // Affected Landslide Hazard points
+  const affectedHazards = routeData?.affected_hazards || [];
+
   return (
-    <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', borderRadius: '12px' }}>
-      <MapClickHandler onLocationSelect={onLocationSelect} />
-      <MapViewUpdater targetLoc={selectedLocation} routeData={routeData} />
-      
-      <LayersControl position="topright">
-        <BaseLayer checked name="OpenTopoMap (Topographic)">
-          <TileLayer
-            attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
-            url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-            maxZoom={17}
-          />
-        </BaseLayer>
+    <div className="gis-map-container">
+      <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', borderRadius: '14px' }}>
+        <MapClickHandler onLocationSelect={onLocationSelect} />
+        <MapViewUpdater targetLoc={selectedLocation} routeData={routeData} />
+        
+        <LayersControl position="topright">
+          <BaseLayer checked name="OpenTopoMap (Topographic GIS)">
+            <TileLayer
+              attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+              maxZoom={17}
+            />
+          </BaseLayer>
 
-        <BaseLayer name="Satellite (Esri Imagery)">
-          <TileLayer
-            attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          />
-        </BaseLayer>
+          <BaseLayer name="Satellite Imagery (Esri)">
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          </BaseLayer>
 
-        <BaseLayer name="Streets (OpenStreetMap)">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-        </BaseLayer>
+          <BaseLayer name="Street Network (OSM)">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          </BaseLayer>
 
-        {/* Heatmap GeoJSON Layer */}
-        {heatmapData && heatmapData.features && (
-          <Overlay checked name="Real-Time GEE Satellite Grid">
-            <GeoJSON 
-              key={JSON.stringify(heatmapData.summary || heatmapData.features.length)}
-              data={heatmapData} 
-              style={geoJsonStyle} 
-              onEachFeature={onEachFeature} 
+          {/* Heatmap GeoJSON Layer */}
+          {heatmapData && heatmapData.features && (
+            <Overlay checked name="Landslide Risk Grid">
+              <GeoJSON 
+                key={JSON.stringify(heatmapData.summary || heatmapData.features.length)}
+                data={heatmapData} 
+                style={geoJsonStyle} 
+                onEachFeature={onEachFeature} 
+              />
+            </Overlay>
+          )}
+
+          <Overlay name="GSI Geology WMS Layer">
+            <WMSTileLayer
+              url="http://ogc.bgs.ac.uk/cgi-bin/BGS_GSI_Geology/wms?language=eng&"
+              layers="IND_GSI_2M_Geology"
+              format="image/png"
+              transparent={true}
+              opacity={0.6}
+              attribution="Geological Survey of India"
             />
           </Overlay>
+        </LayersControl>
+
+        {/* Render Original Blocked Route as a Faded Red Dashed Polyline if Rerouted */}
+        {routeData?.is_rerouted && origCoords.length > 0 && (
+          <Polyline 
+            positions={origCoords} 
+            pathOptions={{ color: '#ef4444', weight: 4, opacity: 0.7, dashArray: '8, 8' }} 
+          />
         )}
 
-        <Overlay name="GSI Geology WMS Layer">
-          <WMSTileLayer
-            url="http://ogc.bgs.ac.uk/cgi-bin/BGS_GSI_Geology/wms?language=eng&"
-            layers="IND_GSI_2M_Geology"
-            format="image/png"
-            transparent={true}
-            opacity={0.6}
-            attribution="Geological Survey of India"
-          />
-        </Overlay>
-      </LayersControl>
+        {/* Render Safe Alternative Route in Solid Vibrant Blue/Emerald */}
+        {safeCoords.length > 0 && (
+          <>
+            <Polyline 
+              positions={safeCoords} 
+              pathOptions={{ color: '#0284c7', weight: 8, opacity: 0.6 }} 
+            />
+            <Polyline 
+              positions={safeCoords} 
+              pathOptions={{ color: '#38bdf8', weight: 5, opacity: 1.0 }} 
+            />
+          </>
+        )}
 
-      {/* 100% Real Turn-By-Turn Highway Evacuation Route Polyline & Safe Shelter Destination Marker */}
-      {routeData && routeData.route_geojson && (
-        <>
-          {/* Outer glow stroke line */}
-          <Polyline 
-            positions={routeData.route_geojson.geometry.coordinates.map(c => [c[1], c[0]])} 
-            pathOptions={{ color: '#0284c7', weight: 8, opacity: 0.6 }} 
-          />
-          {/* Inner solid high-visibility road polyline */}
-          <Polyline 
-            positions={routeData.route_geojson.geometry.coordinates.map(c => [c[1], c[0]])} 
-            pathOptions={{ color: '#38bdf8', weight: 5, opacity: 1.0 }} 
-          />
-          {routeData.destination && (
-            <Marker 
-              position={[routeData.destination.latitude, routeData.destination.longitude]}
-              icon={createCustomIcon('#3b82f6')}
-            >
-              <Popup>
-                <div style={{ padding: '6px', textAlign: 'center' }}>
-                  <strong style={{ fontSize: '13px', color: '#2563eb' }}>
-                    🏁 Safe Relief Hub: {routeData.destination.nearest_safe_hub}
-                  </strong>
-                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
-                    Safe Evacuation Distance: <strong>{routeData.distance_km} km</strong><br/>
-                    Est. Transit Time: <strong>{routeData.estimated_time_mins} mins</strong>
-                  </div>
+        {/* Destination Relief Hub Marker */}
+        {routeData && routeData.destination && (
+          <Marker 
+            position={[routeData.destination.latitude, routeData.destination.longitude]}
+            icon={createCustomIcon('#3b82f6')}
+          >
+            <Popup>
+              <div style={{ padding: '6px', textAlign: 'center' }}>
+                <strong style={{ fontSize: '13px', color: '#2563eb' }}>
+                  🏁 Safe Destination Hub: {routeData.destination.nearest_safe_hub}
+                </strong>
+                <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                  Safe Distance: <strong>{routeData.distance_km} km</strong><br/>
+                  ETA: <strong>{routeData.estimated_time_mins} mins</strong>
                 </div>
-              </Popup>
-            </Marker>
-          )}
-        </>
-      )}
-
-      {/* Field Report Ground-Truth Camera Pins */}
-      {fieldReports && fieldReports.map((report) => (
-        <Marker
-          key={report.id}
-          position={[report.latitude, report.longitude]}
-          icon={createCustomIcon(report.severity === 'CRITICAL' ? '#dc2626' : report.severity === 'HIGH' ? '#ea580c' : '#eab308')}
-        >
-          <Popup>
-            <div style={{ padding: '6px', maxWidth: '220px', fontFamily: 'sans-serif' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <span style={{ fontSize: '16px' }}>📸</span>
-                <strong style={{ fontSize: '13px', color: '#0f172a' }}>{report.title}</strong>
               </div>
+            </Popup>
+          </Marker>
+        )}
 
-              {report.image_url && (
-                <img 
-                  src={report.image_url} 
-                  alt={report.title} 
-                  style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px', marginBottom: '6px' }}
-                />
+        {/* Intersecting Landslide Hazard Blockage Markers (🔴/💥) */}
+        {affectedHazards.map((h, idx) => (
+          <Marker
+            key={`hazard_block_${idx}`}
+            position={[h.latitude, h.longitude]}
+            icon={createCustomIcon('#dc2626', 'landslide')}
+          >
+            <Popup>
+              <div style={{ padding: '6px', maxWidth: '240px', fontFamily: 'system-ui, sans-serif' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#dc2626', fontWeight: 'bold' }}>
+                  <span style={{ fontSize: '16px' }}>💥</span>
+                  <span>ACTIVE LANDSLIDE BLOCKAGE</span>
+                </div>
+                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginTop: '4px' }}>
+                  {h.title || h.location_name}
+                </strong>
+                <p style={{ fontSize: '11px', color: '#475569', margin: '4px 0' }}>
+                  {h.description}
+                </p>
+                <div style={{ fontSize: '11px', color: '#991b1b', background: '#fee2e2', padding: '4px', borderRadius: '4px' }}>
+                  ⚠️ Proximity to Original Route: <strong>{h.distance_to_route_km || 0.5} km</strong>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Field Report Camera Incident Markers */}
+        {fieldReports && fieldReports.map((report) => (
+          <Marker
+            key={report.id}
+            position={[report.latitude, report.longitude]}
+            icon={createCustomIcon(report.severity === 'CRITICAL' ? '#dc2626' : report.severity === 'HIGH' ? '#ea580c' : '#eab308')}
+          >
+            <Popup>
+              <div style={{ padding: '6px', maxWidth: '220px', fontFamily: 'system-ui, sans-serif' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '16px' }}>📸</span>
+                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>{report.title}</strong>
+                </div>
+
+                {report.image_url && (
+                  <img 
+                    src={report.image_url} 
+                    alt={report.title} 
+                    style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px', marginBottom: '6px' }}
+                  />
+                )}
+
+                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '4px' }}>
+                  <strong>Severity:</strong> <span style={{ color: report.severity === 'CRITICAL' ? '#dc2626' : '#ea580c', fontWeight: 'bold' }}>{report.severity}</span><br/>
+                  <strong>Reporter:</strong> {report.reporter_name}<br/>
+                  <strong>Coords:</strong> {report.latitude.toFixed(4)}°, {report.longitude.toFixed(4)}°
+                </div>
+
+                <p style={{ fontSize: '11px', color: '#334155', margin: '4px 0 0 0', lineHeight: '1.3' }}>
+                  {report.description}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Selected Location Marker Pin */}
+        {selectedLocation && (
+          <Marker 
+            position={[selectedLocation.lat, selectedLocation.lon]} 
+            icon={createCustomIcon(getCategoryColor(selectedLocation.category))}
+          >
+            <Popup>
+              <div style={{ padding: '4px', textAlign: 'center' }}>
+                <strong style={{ fontSize: '14px', color: '#1e293b' }}>
+                  {selectedLocation.name || 'Queried Location'}
+                </strong>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  {selectedLocation.lat.toFixed(4)}°N, {selectedLocation.lon.toFixed(4)}°E
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+      </MapContainer>
+
+      {/* Floating Active Evacuation Route Banner */}
+      {routeData && (
+        <div className={`floating-route-card ${routeData.is_rerouted ? 'rerouted' : routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? 'blocked' : ''}`}>
+          <div className="route-card-main">
+            <div className="route-header-line">
+              {routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? (
+                <span className="route-badge no-route">🔴 NO SAFE ROUTE AVAILABLE</span>
+              ) : routeData.is_rerouted ? (
+                <span className="route-badge warning">⚠️ ROUTE AUTOMATICALLY CHANGED</span>
+              ) : (
+                <span className="route-badge safe">🟢 SAFE ROUTE</span>
               )}
+            </div>
 
-              <div style={{ fontSize: '11px', color: '#475569', marginBottom: '4px' }}>
-                <strong>Severity:</strong> <span style={{ color: report.severity === 'CRITICAL' ? '#dc2626' : '#ea580c', fontWeight: 'bold' }}>{report.severity}</span><br/>
-                <strong>Reporter:</strong> {report.reporter_name}<br/>
-                <strong>Coords:</strong> {report.latitude.toFixed(4)}°, {report.longitude.toFixed(4)}°
-              </div>
-
-              <p style={{ fontSize: '11px', color: '#334155', margin: '4px 0 0 0', lineHeight: '1.3' }}>
-                {report.description}
+            {routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? (
+              <p className="route-reroute-msg red">
+                🔴 All available highway routes are currently affected by active landslide hazards. Evacuation suspended.
               </p>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+            ) : routeData.is_rerouted ? (
+              <p className="route-reroute-msg amber">
+                {routeData.reroute_reason || "Recent landslide detected on original route. We've selected a safer alternative."}
+              </p>
+            ) : null}
 
-      {/* Selected Location Marker Pin */}
-      {selectedLocation && (
-        <Marker 
-          position={[selectedLocation.lat, selectedLocation.lon]} 
-          icon={createCustomIcon(getCategoryColor(selectedLocation.category))}
-        >
-          <Popup>
-            <div style={{ padding: '4px', textAlign: 'center' }}>
-              <strong style={{ fontSize: '14px', color: '#1e293b' }}>
-                {selectedLocation.name || 'Queried Point'}
-              </strong>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                {selectedLocation.lat.toFixed(4)}°N, {selectedLocation.lon.toFixed(4)}°E
+            {routeData.status !== 'NO_SAFE_ROUTE_AVAILABLE' && (
+              <div className="route-metrics-row">
+                <div className="r-metric">
+                  <span className="r-lbl">Destination:</span>
+                  <span className="r-val text-blue">{routeData.destination?.nearest_safe_hub}</span>
+                </div>
+                <div className="r-metric">
+                  <span className="r-lbl">Distance:</span>
+                  <span className="r-val text-amber">{routeData.distance_km} km</span>
+                  {routeData.additional_distance_km > 0 && (
+                    <span className="add-metric text-red"> (+{routeData.additional_distance_km} km detour)</span>
+                  )}
+                </div>
+                <div className="r-metric">
+                  <span className="r-lbl">ETA:</span>
+                  <span className="r-val text-emerald">{routeData.estimated_time_mins} mins</span>
+                  {routeData.additional_time_mins > 0 && (
+                    <span className="add-metric text-red"> (+{routeData.additional_time_mins}m)</span>
+                  )}
+                </div>
               </div>
-            </div>
-          </Popup>
-        </Marker>
+            )}
+          </div>
+
+          <button className="clear-route-icon-btn" onClick={onClearRoute} title="Clear Evacuation Route">
+            ✕ Clear
+          </button>
+        </div>
       )}
 
-      {/* Heatmap Legend Box */}
-      <div className="map-legend">
-        <span className="legend-title">Live Risk Legend</span>
+      {/* Floating Compact Risk Legend Box */}
+      <div className="floating-map-legend">
+        <span className="legend-title">Risk Legend</span>
         <div className="legend-items">
-          <span className="legend-item"><span className="legend-color" style={{ background: '#ef4444' }}></span> Severe (&gt;75%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#f97316' }}></span> Warning (50-75%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#eab308' }}></span> Alert (25-50%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#10b981' }}></span> Watch (&lt;25%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#ea580c', borderRadius: '50%' }}></span> 📸 Field Incident Pins</span>
+          <span className="legend-item"><span className="legend-color" style={{ background: '#10b981' }}></span> 🟢 Low (&lt;25%)</span>
+          <span className="legend-item"><span className="legend-color" style={{ background: '#eab308' }}></span> 🟡 Moderate (25-50%)</span>
+          <span className="legend-item"><span className="legend-color" style={{ background: '#f97316' }}></span> 🟠 High (50-75%)</span>
+          <span className="legend-item"><span className="legend-color" style={{ background: '#ef4444' }}></span> 🔴 Critical (&gt;75%)</span>
+          <span className="legend-item"><span className="legend-color" style={{ background: '#dc2626', borderRadius: '50%' }}></span> 💥 Landslide Blockage</span>
         </div>
       </div>
-    </MapContainer>
+    </div>
   );
 };
 
 export default RiskMap;
-
