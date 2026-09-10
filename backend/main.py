@@ -1,4 +1,3 @@
-# NE-GeoAlert Backend API v1.2.0 (GEE Graceful Fallback & Health Check Enabled)
 import json
 import random
 import sys
@@ -87,22 +86,8 @@ def get_location_risk(lat: float, lon: float):
     Fetches real-time satellite metrics (SRTM DEM, Sentinel-2 NDVI, GPM IMERG Rainfall)
     from Google Earth Engine and predicts landslide risk with SHAP explainability.
     """
-    try:
-        gee_features = get_all_features(lat, lon)
-    except Exception as gee_err:
-        print(f"[Location Risk Warning] Satellite feature extraction fallback ({gee_err})")
-        r24 = round(40.0 + ((abs(lat * 12) + abs(lon * 7)) % 110.0), 1)
-        gee_features = {
-            "elevation": round(200.0 + ((abs(lat * 100) + abs(lon * 50)) % 1200.0), 1),
-            "slope": round(15.0 + ((abs(lat * 10) + abs(lon * 5)) % 25.0), 1),
-            "aspect": 180.0,
-            "ndvi": 0.48,
-            "rainfall_24h": r24,
-            "rainfall_72h": round(r24 * 2.2, 1),
-            "soil_moisture": 0.65,
-            "lithology_class": 2
-        }
-
+    gee_features = get_all_features(lat, lon)
+    
     features_dict = {
         "slope": gee_features["slope"],
         "rainfall_24h": gee_features["rainfall_24h"],
