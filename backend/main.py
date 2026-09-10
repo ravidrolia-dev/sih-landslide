@@ -18,6 +18,7 @@ from geoalchemy2.functions import ST_AsGeoJSON
 from database import engine, get_db, Base
 import models
 import advisory_service
+import backtest_service
 
 # Initialize PostGIS tables if database is available
 try:
@@ -506,6 +507,16 @@ def trigger_alert_simulation(lat: float, lon: float, location_name: str = None):
     risk_data = get_location_risk(lat, lon)
     dispatch_res = advisory_service.simulate_emergency_alert(lat, lon, location_name, risk_data)
     return dispatch_res
+
+
+@app.get("/backtest")
+def get_backtest_report():
+    """
+    Returns AI model historical backtesting results, confusion matrix, ROC curve, SHAP feature importance,
+    and 12-18 hour early warning lead-time validation case studies (Wayanad 2024, Guwahati 2024, Sikkim 2023).
+    """
+    return backtest_service.get_backtest_results()
+
 
 
 

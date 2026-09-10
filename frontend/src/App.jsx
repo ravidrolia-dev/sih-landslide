@@ -7,7 +7,7 @@ import FieldReportPanel from './FieldReportPanel';
 import SmsControlModal from './SmsControlModal';
 import SystemDiagnosticsModal from './SystemDiagnosticsModal';
 import RoutePlannerCard from './RoutePlannerCard';
-import StormPlaybackBar, { getStormMetricsForHour } from './StormPlaybackBar';
+import BacktestPanel from './BacktestPanel';
 import { API_BASE_URL } from './config';
 
 const PRESET_LOCATIONS = [
@@ -44,13 +44,6 @@ function App() {
   const [fieldReports, setFieldReports] = useState([]);
   const [activeTab, setActiveTab] = useState('gis');
 
-  // Storm Playback State (Tier 2, #14 Demo Mode)
-  const [isStormActive, setIsStormActive] = useState(false);
-  const [stormHour, setStormHour] = useState(0);
-  const [isStormPlaying, setIsStormPlaying] = useState(false);
-  const [stormSpeed, setStormSpeed] = useState(1);
-  const [stormMetrics, setStormMetrics] = useState(null);
-
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -69,50 +62,6 @@ function App() {
 
   // Live Alert notification
   const [liveAlertMessage, setLiveAlertMessage] = useState(null);
-
-  // Dynamic Heatmap Calculation during Storm Playback Replay
-  const effectiveHeatmapData = React.useMemo(() => {
-    if (!isStormActive || !heatmapData || !heatmapData.features) return heatmapData;
-    const cumRain = stormMetrics?.cumulativeRain || 0;
-
-    const updatedFeatures = heatmapData.features.map(feat => {
-      const p = feat.properties;
-      const slope = p.slope || 20.0;
-      const baseScore = p.risk_score || 15.0;
-
-      const addRisk = (cumRain / 260.0) * (40.0 + slope * 1.15);
-      const simScore = Math.min(99.4, Math.round(baseScore + addRisk));
-
-      let simCat = "Watch";
-      if (simScore >= 75) simCat = "Severe";
-      else if (simScore >= 50) simCat = "Warning";
-      else if (simScore >= 25) simCat = "Alert";
-
-      return {
-        ...feat,
-        properties: {
-          ...p,
-          risk_score: simScore,
-          category: simCat,
-          rainfall_72h: Math.round((p.rainfall_72h || 40) + cumRain * 0.8)
-        }
-      };
-    });
-
-    return {
-      ...heatmapData,
-      features: updatedFeatures
-    };
-  }, [isStormActive, heatmapData, stormMetrics?.cumulativeRain]);
-
-  // Update live alert banner when storm playback crosses critical triggers
-  const handleStormMetricsChange = (metrics) => {
-    setStormMetrics(metrics);
-    if (metrics.bannerAlert) {
-      setLiveAlertMessage(metrics.bannerAlert);
-    }
-  };
-
 
   // Ref to track current active route for live rechecks
   const activeRouteRef = useRef(activeRouteData);
@@ -345,6 +294,12 @@ function App() {
             📷 Field Reports
           </button>
           <button 
+            className={`nav-item ${activeTab === 'backtest' ? 'active' : ''}`}
+            onClick={() => setActiveTab('backtest')}
+          >
+            📊 Model Backtest
+          </button>
+          <button 
             className="nav-item alerts-btn"
             onClick={() => openAlertModal()}
           >
@@ -353,23 +308,6 @@ function App() {
         </nav>
 
         <div className="navbar-right">
-          <button 
-            className={`btn-storm-demo-trigger ${isStormActive ? 'active' : ''}`}
-            onClick={() => {
-              const nextState = !isStormActive;
-              setIsStormActive(nextState);
-              if (nextState) {
-                setStormHour(0);
-                setIsStormPlaying(true);
-                setActiveTab('gis');
-              } else {
-                setIsStormPlaying(false);
-              }
-            }}
-          >
-            {isStormActive ? '⚡ Storm Replay Active' : '⛈️ Storm Replay Demo'}
-          </button>
-
           <button 
             className={`btn-my-location ${locatingUser ? 'locating' : ''}`}
             onClick={handleScanUserLocation}
@@ -387,19 +325,6 @@ function App() {
           </button>
         </div>
       </header>
-
-      {/* Live 24-Hour Storm Playback Bar */}
-      <StormPlaybackBar 
-        isActive={isStormActive}
-        onToggleActive={setIsStormActive}
-        currentHour={stormHour}
-        setCurrentHour={setStormHour}
-        isPlaying={isStormPlaying}
-        setIsPlaying={setIsStormPlaying}
-        playbackSpeed={stormSpeed}
-        setPlaybackSpeed={setStormSpeed}
-        onStormMetricsChange={handleStormMetricsChange}
-      />
 
       {/* Toolbar / Control Bar (GIS View) */}
       {activeTab === 'gis' && (
@@ -493,7 +418,7 @@ function App() {
             <div className="gis-map-column">
               <RiskMap 
                 selectedLocation={selectedLocation} 
-                heatmapData={effectiveHeatmapData}
+                heatmapData={heatmapData}
                 routeData={activeRouteData}
                 fieldReports={fieldReports}
                 onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
@@ -529,11 +454,15 @@ function App() {
               onSwitchToMap={() => setActiveTab('gis')}
             />
           </div>
-        ) : (
+        ) : activeTab === 'reports' ? (
           <div className="tab-page-wrapper">
             <FieldReportPanel 
               onReportSubmitted={fetchFieldReports}
             />
+          </div>
+        ) : (
+          <div className="tab-page-wrapper">
+            <BacktestPanel />
           </div>
         )}
       </main>
