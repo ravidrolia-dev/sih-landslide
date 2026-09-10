@@ -1,4 +1,5 @@
 import React from 'react';
+import { API_BASE_URL } from './config';
 
 const SystemDiagnosticsModal = ({ isOpen, onClose, backendStatus, heatmapSummary, offlineQueueCount }) => {
   if (!isOpen) return null;
@@ -33,7 +34,7 @@ const SystemDiagnosticsModal = ({ isOpen, onClose, backendStatus, heatmapSummary
             </div>
             <div className="diag-metric">
               <span className="lbl">Base URL:</span>
-              <code>http://localhost:8000</code>
+              <code>{API_BASE_URL}</code>
             </div>
           </div>
 

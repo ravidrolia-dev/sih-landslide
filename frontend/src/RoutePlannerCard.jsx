@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { API_BASE_URL } from './config';
 
 export const ROUTE_LOCATIONS = [
   { name: "Shillong (Meghalaya)", lat: 25.5788, lon: 91.8933 },
@@ -60,7 +61,7 @@ const RoutePlannerCard = ({
     if (val.trim().length >= 2) {
       sourceDebounceTimer.current = setTimeout(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/geocode/search?q=${encodeURIComponent(val)}`);
+          const res = await fetch(`${API_BASE_URL}/geocode/search?q=${encodeURIComponent(val)}`);
           if (res.ok) {
             const data = await res.json();
             setSourceResults(data.results || []);
@@ -98,7 +99,7 @@ const RoutePlannerCard = ({
     if (val.trim().length >= 2) {
       destDebounceTimer.current = setTimeout(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/geocode/search?q=${encodeURIComponent(val)}`);
+          const res = await fetch(`${API_BASE_URL}/geocode/search?q=${encodeURIComponent(val)}`);
           if (res.ok) {
             const data = await res.json();
             setDestResults(data.results || []);

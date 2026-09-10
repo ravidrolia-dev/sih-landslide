@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from './config';
 
 const EmergencyPanel = ({ onSelectRoute, activeRouteData, onOpenSmsModal, onSwitchToMap }) => {
   const [priorityQueue, setPriorityQueue] = useState([]);
@@ -11,7 +12,7 @@ const EmergencyPanel = ({ onSelectRoute, activeRouteData, onOpenSmsModal, onSwit
   const fetchPriorityList = () => {
     setLoading(true);
     setError(null);
-    fetch('http://localhost:8000/emergency/priority-list')
+    fetch(`${API_BASE_URL}/emergency/priority-list`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch emergency priority list");
         return res.json();

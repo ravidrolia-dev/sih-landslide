@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from './config';
 
 const SmsControlModal = ({ isOpen, onClose, initialData = {} }) => {
   const [phoneNumber, setPhoneNumber] = useState('+919352526219');
@@ -54,7 +55,7 @@ const SmsControlModal = ({ isOpen, onClose, initialData = {} }) => {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/sms/send', {
+      const response = await fetch(`${API_BASE_URL}/sms/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

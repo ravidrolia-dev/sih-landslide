@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from './config';
 
 const RiskPanel = ({ data, loading, error, locationName, onFindSafeRoute, onOpenSmsModal }) => {
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(true);
@@ -49,7 +50,7 @@ const RiskPanel = ({ data, loading, error, locationName, onFindSafeRoute, onOpen
     const lat = coordinates?.latitude;
     const lon = coordinates?.longitude;
     const loc = encodeURIComponent(locationName || 'Queried Location');
-    window.open(`http://localhost:8000/advisory/pdf?lat=${lat}&lon=${lon}&location_name=${loc}`, '_blank');
+    window.open(`${API_BASE_URL}/advisory/pdf?lat=${lat}&lon=${lon}&location_name=${loc}`, '_blank');
   };
 
   return (

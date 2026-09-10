@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { saveReportOffline, getPendingOfflineReports, syncOfflineQueueToServer } from './offlineStore';
+import { API_BASE_URL } from './config';
 
 const PRESET_SAMPLE_PHOTOS = [
   { name: "📸 Mudslide (NH-6 Hill Cut)", url: "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?w=600&auto=format&fit=crop&q=60" },
@@ -49,7 +50,7 @@ const FieldReportPanel = ({ onReportSubmitted }) => {
   const refreshReportsData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/reports/list');
+      const res = await fetch(`${API_BASE_URL}/reports/list`);
       if (res.ok) {
         const data = await res.json();
         setServerReports(data.reports || []);
@@ -155,7 +156,7 @@ const FieldReportPanel = ({ onReportSubmitted }) => {
 
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:8000/reports/submit', {
+      const res = await fetch(`${API_BASE_URL}/reports/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportPayload)

@@ -7,6 +7,7 @@ import FieldReportPanel from './FieldReportPanel';
 import SmsControlModal from './SmsControlModal';
 import SystemDiagnosticsModal from './SystemDiagnosticsModal';
 import RoutePlannerCard from './RoutePlannerCard';
+import { API_BASE_URL } from './config';
 
 const PRESET_LOCATIONS = [
   { name: "Shillong (Meghalaya)", lat: 25.5788, lon: 91.8933 },
@@ -70,7 +71,7 @@ function App() {
   // Fetch ground-truth field reports & trigger dynamic route re-check
   const fetchFieldReports = async () => {
     try {
-      const res = await fetch('http://localhost:8000/reports/list');
+      const res = await fetch(`${API_BASE_URL}/reports/list`);
       if (res.ok) {
         const data = await res.json();
         const reports = data.reports || [];
@@ -93,7 +94,7 @@ function App() {
   // Fetch Spatial Risk Heatmap GeoJSON from backend
   const fetchHeatmap = (forceRefresh = false) => {
     setScanning(true);
-    let url = 'http://localhost:8000/risk/heatmap';
+    let url = `${API_BASE_URL}/risk/heatmap`;
     const params = new URLSearchParams();
     if (selectedState !== "All 8 NER States") {
       params.append('district', selectedState);
@@ -131,7 +132,7 @@ function App() {
     setSelectedLocation({ lat, lon, name: name || `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E` });
 
     try {
-      const response = await fetch(`http://localhost:8000/risk/location?lat=${lat}&lon=${lon}`);
+      const response = await fetch(`${API_BASE_URL}/risk/location?lat=${lat}&lon=${lon}`);
       if (!response.ok) throw new Error("Failed to extract location risk metrics");
       const data = await response.json();
       setRiskData(data);
@@ -178,7 +179,7 @@ function App() {
     setError(null);
     setLiveAlertMessage(null);
     try {
-      let url = `http://localhost:8000/emergency/evacuation-route?origin_lat=${originLat}&origin_lon=${originLon}`;
+      let url = `${API_BASE_URL}/emergency/evacuation-route?origin_lat=${originLat}&origin_lon=${originLon}`;
       if (destLat !== null && destLat !== undefined && destLon !== null && destLon !== undefined) {
         url += `&dest_lat=${destLat}&dest_lon=${destLon}`;
       }
@@ -203,7 +204,7 @@ function App() {
   // Re-check Active Route Dynamically when new reports arrive
   const recheckActiveRoute = async (originLat, originLon) => {
     try {
-      let url = `http://localhost:8000/emergency/evacuation-route?origin_lat=${originLat}&origin_lon=${originLon}`;
+      let url = `${API_BASE_URL}/emergency/evacuation-route?origin_lat=${originLat}&origin_lon=${originLon}`;
       if (activeRouteRef.current?.destination?.latitude && activeRouteRef.current?.destination?.longitude) {
         url += `&dest_lat=${activeRouteRef.current.destination.latitude}&dest_lon=${activeRouteRef.current.destination.longitude}`;
       }
@@ -230,7 +231,7 @@ function App() {
     if (val.trim().length >= 2) {
       searchDebounceRef.current = setTimeout(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/geocode/search?q=${encodeURIComponent(val)}`);
+          const res = await fetch(`${API_BASE_URL}/geocode/search?q=${encodeURIComponent(val)}`);
           if (res.ok) {
             const data = await res.json();
             setSearchResults(data.results || []);

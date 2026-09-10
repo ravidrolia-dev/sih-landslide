@@ -95,6 +95,8 @@ export async function removeOfflineReport(offlineId) {
   });
 }
 
+import { API_BASE_URL } from './config';
+
 // Auto-sync engine: flushes all IndexedDB pending reports to backend server
 export async function syncOfflineQueueToServer(onSyncComplete = null) {
   if (!navigator.onLine) {
@@ -110,7 +112,7 @@ export async function syncOfflineQueueToServer(onSyncComplete = null) {
   console.log(`[Auto-Sync] Reconnected! Flushing ${pendingItems.length} queued report(s) to server...`);
 
   try {
-    const response = await fetch('http://localhost:8000/reports/sync', {
+    const response = await fetch(`${API_BASE_URL}/reports/sync`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reports: pendingItems })
