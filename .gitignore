@@ -46,10 +46,11 @@ logs/
 tmp/
 temp/
 
-# Large Model / Data Artifacts
+# Model / Data Artifacts
 ml/*.joblib
-ml/*.pkl
 ml/*.pt
 ml/*.h5
 ml/*.onnx
+!ml/xgboost_model.pkl
+!ml/shap_explainer.pkl
 !ml/.gitkeep
