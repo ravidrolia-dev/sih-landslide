@@ -32,9 +32,6 @@ def init_gee() -> bool:
     if _GEE_INITIALIZED:
         return True
 
-    if _GEE_INIT_ERROR:
-        raise RuntimeError(f"[GEE] Earth Engine initialization previously failed: {_GEE_INIT_ERROR}")
-
     _load_env_file()
     project = os.getenv("GEE_PROJECT_ID", PROJECT_ID)
 
