@@ -5,9 +5,13 @@ psycopg2-binary
 sqlalchemy
 geoalchemy2
 xgboost
+shap
 pandas
+numpy
 scikit-learn
 joblib
 networkx
 earthengine-api
 requests
+reportlab
+pydantic
