@@ -77,16 +77,33 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ml.predict import predict_risk
+from ml.gee_service import get_all_features, init_gee
 
-from ml.gee_service import get_all_features
+@app.on_event("startup")
+def startup_gee_init():
+    """Attempt GEE authentication during application startup."""
+    try:
+        print("[Startup] Initializing Google Earth Engine authentication...")
+        init_gee()
+        print("[Startup] Google Earth Engine initialized successfully!")
+    except Exception as e:
+        print(f"[Startup Warning] GEE initialization notice: {e}")
 
 @app.get("/risk/location")
 def get_location_risk(lat: float, lon: float):
     """
     Fetches real-time satellite metrics (SRTM DEM, Sentinel-2 NDVI, GPM IMERG Rainfall)
     from Google Earth Engine and predicts landslide risk with SHAP explainability.
+    Raises HTTPException 500 if GEE authentication or feature extraction fails.
     """
-    gee_features = get_all_features(lat, lon)
+    try:
+        gee_features = get_all_features(lat, lon)
+    except Exception as e:
+        print(f"[GEE Error] Feature extraction failed for ({lat}, {lon}): {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Google Earth Engine Authentication / Pipeline Error: {str(e)}"
+        )
     
     features_dict = {
         "slope": gee_features["slope"],
@@ -107,9 +124,11 @@ def get_location_risk(lat: float, lon: float):
             reverse=True
         )
     except Exception as e:
-        print(f"Location risk prediction failed: {e}")
-        risk_score = 0.0
-        top_factors = []
+        print(f"[ML Prediction Error]: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Landslide Risk Prediction Error: {str(e)}"
+        )
         
     if risk_score > 75:
         category = "Severe"
