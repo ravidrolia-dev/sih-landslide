@@ -115,10 +115,15 @@ const CustomMapControls = ({ onScanLocation, locatingUser }) => {
   return (
     <div className="custom-map-controls-stack">
       <button className="control-btn" onClick={handleZoomIn} title="Zoom In">
-        <span>+</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
       </button>
       <button className="control-btn" onClick={handleZoomOut} title="Zoom Out">
-        <span>−</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
       </button>
       <button 
         className={`control-btn ${locatingUser ? 'locating' : ''}`} 
@@ -126,7 +131,7 @@ const CustomMapControls = ({ onScanLocation, locatingUser }) => {
         title="My Location (Live GPS)"
         disabled={locatingUser}
       >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="8"></circle>
           <line x1="12" y1="2" x2="12" y2="5"></line>
           <line x1="12" y1="19" x2="12" y2="22"></line>
@@ -135,11 +140,15 @@ const CustomMapControls = ({ onScanLocation, locatingUser }) => {
           <circle cx="12" cy="12" r="2.5" fill="currentColor"></circle>
         </svg>
       </button>
-      <button className="control-btn" onClick={handleResetView} title="Reset View (NER Region)">
-        <span>◈</span>
+      <button className="control-btn" onClick={handleResetView} title="Reset Region View (NER)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+        </svg>
       </button>
-      <button className="control-btn" onClick={handleToggleFullscreen} title="Fullscreen">
-        <span>⛶</span>
+      <button className="control-btn" onClick={handleToggleFullscreen} title="Fullscreen Toggle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
       </button>
     </div>
   );
