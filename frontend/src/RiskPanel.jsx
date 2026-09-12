@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { API_BASE_URL } from './config';
 
 const RiskPanel = ({ data, loading, error, locationName, onFindSafeRoute, onOpenSmsModal }) => {
-  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(true);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
 
   if (loading) {
     return (
