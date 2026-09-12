@@ -398,17 +398,7 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
         </div>
       )}
 
-      {/* Floating Compact Risk Legend Box */}
-      <div className="floating-map-legend">
-        <span className="legend-title">Risk Legend</span>
-        <div className="legend-items">
-          <span className="legend-item"><span className="legend-color" style={{ background: '#10b981' }}></span> 🟢 Low (&lt;25%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#eab308' }}></span> 🟡 Moderate (25-50%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#f97316' }}></span> 🟠 High (50-75%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#ef4444' }}></span> 🔴 Critical (&gt;75%)</span>
-          <span className="legend-item"><span className="legend-color" style={{ background: '#dc2626', borderRadius: '50%' }}></span> 💥 Landslide Blockage</span>
-        </div>
-      </div>
+      {/* Note: Legend is rendered cleanly in App.jsx floating UI stack */}
     </div>
   );
 };

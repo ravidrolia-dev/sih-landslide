@@ -492,17 +492,17 @@ function App() {
                   <span className="collapse-icon">▼</span>
                 </div>
                 <div className="legend-items">
-                  <div className="leg-row"><span className="dot watch">●</span> Watch (&lt;25%)</div>
-                  <div className="leg-row"><span className="dot alert">●</span> Alert (25–50%)</div>
-                  <div className="leg-row"><span className="dot warning">●</span> Warning (50–75%)</div>
-                  <div className="leg-row"><span className="dot severe">●</span> Severe (&gt;75%)</div>
-                  <div className="leg-row"><span className="dot hazard">⚠️</span> Landslide Obstacle</div>
+                  <div className="leg-row"><span className="dot watch">●</span> Low (&lt;25%)</div>
+                  <div className="leg-row"><span className="dot alert">●</span> Moderate (25–50%)</div>
+                  <div className="leg-row"><span className="dot warning">●</span> High (50–75%)</div>
+                  <div className="leg-row"><span className="dot severe">●</span> Critical (&gt;75%)</div>
+                  <div className="leg-row"><span className="dot hazard" style={{ color: '#ef4444' }}>★</span> Landslide Blockage</div>
                 </div>
               </div>
             ) : (
               <div className="floating-legend-pill" onClick={() => setIsLegendExpanded(true)}>
                 <span className="dot watch">●</span>
-                <span className="legend-label">Risk Legend</span>
+                <span className="legend-label">Risk</span>
                 <span className="expand-icon">▲</span>
               </div>
             )}
