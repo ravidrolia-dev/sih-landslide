@@ -340,18 +340,6 @@ function App() {
             <span className="nav-btn-text">SMS Dispatch</span>
           </button>
         </nav>
-
-        <div className="floating-header-right">
-          <button 
-            className={`floating-icon-btn ${locatingUser ? 'locating' : ''}`}
-            onClick={handleScanUserLocation}
-            disabled={locatingUser}
-            title="My Location"
-          >
-            <span className="icon-symbol">📍</span>
-            <span className="hover-label">{locatingUser ? 'Locking...' : 'My Location'}</span>
-          </button>
-        </div>
       </header>
 
       {/* GIS Mode Floating Controls */}
