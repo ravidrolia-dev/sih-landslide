@@ -78,8 +78,16 @@ const getCategoryColor = (cat) => {
   }
 };
 
-const CustomMapControls = ({ onScanLocation, locatingUser }) => {
+const CustomMapControls = ({ 
+  onScanLocation, 
+  locatingUser, 
+  activeBaseMap, 
+  setActiveBaseMap, 
+  showRiskGrid, 
+  setShowRiskGrid 
+}) => {
   const map = useMap();
+  const [isLayersPanelOpen, setIsLayersPanelOpen] = React.useState(false);
   
   const handleZoomIn = (e) => {
     e.stopPropagation();
@@ -125,6 +133,20 @@ const CustomMapControls = ({ onScanLocation, locatingUser }) => {
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
       </button>
+
+      {/* Layers Switcher SVG Button */}
+      <button 
+        className={`control-btn ${isLayersPanelOpen ? 'active' : ''}`}
+        onClick={(e) => { e.stopPropagation(); setIsLayersPanelOpen(!isLayersPanelOpen); }}
+        title="Map Base & Imagery Layers"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+      </button>
+
       <button 
         className={`control-btn ${locatingUser ? 'locating' : ''}`} 
         onClick={handleLocateUser} 
@@ -140,16 +162,66 @@ const CustomMapControls = ({ onScanLocation, locatingUser }) => {
           <circle cx="12" cy="12" r="2.5" fill="currentColor"></circle>
         </svg>
       </button>
+
       <button className="control-btn" onClick={handleResetView} title="Reset Region View (NER)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
         </svg>
       </button>
+
       <button className="control-btn" onClick={handleToggleFullscreen} title="Fullscreen Toggle">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
         </svg>
       </button>
+
+      {/* Floating Glassmorphism Layers Selector Panel */}
+      {isLayersPanelOpen && (
+        <div className="floating-layer-menu-glass" onClick={(e) => e.stopPropagation()}>
+          <div className="layer-menu-header">
+            <span className="layer-menu-title">MAP BASE & LAYERS</span>
+            <button className="layer-menu-close" onClick={() => setIsLayersPanelOpen(false)}>✕</button>
+          </div>
+
+          <div className="layer-section-label">BASE MAP</div>
+          <div className="layer-options-group">
+            <button 
+              className={`layer-opt-btn ${activeBaseMap === 'satellite' ? 'selected' : ''}`}
+              onClick={() => setActiveBaseMap('satellite')}
+            >
+              <span className="opt-icon">🛰️</span>
+              <span className="opt-label">Satellite (Esri)</span>
+            </button>
+
+            <button 
+              className={`layer-opt-btn ${activeBaseMap === 'topo' ? 'selected' : ''}`}
+              onClick={() => setActiveBaseMap('topo')}
+            >
+              <span className="opt-icon">⛰️</span>
+              <span className="opt-label">Topographic (OpenTopo)</span>
+            </button>
+
+            <button 
+              className={`layer-opt-btn ${activeBaseMap === 'osm' ? 'selected' : ''}`}
+              onClick={() => setActiveBaseMap('osm')}
+            >
+              <span className="opt-icon">🗺️</span>
+              <span className="opt-label">Streets (OpenStreetMap)</span>
+            </button>
+          </div>
+
+          <div className="layer-section-label" style={{ marginTop: '10px' }}>DATA OVERLAYS</div>
+          <div className="layer-options-group">
+            <button 
+              className={`layer-opt-btn ${showRiskGrid ? 'selected' : ''}`}
+              onClick={() => setShowRiskGrid(!showRiskGrid)}
+            >
+              <span className="opt-icon">{showRiskGrid ? '🟢' : '⚪'}</span>
+              <span className="opt-label">Landslide Risk Grid</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -157,6 +229,8 @@ const CustomMapControls = ({ onScanLocation, locatingUser }) => {
 const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, fieldReports, onClearRoute, onScanLocation, locatingUser }) => {
   const center = [26.0, 92.8]; 
   const zoom = 7;
+  const [activeBaseMap, setActiveBaseMap] = React.useState('satellite');
+  const [showRiskGrid, setShowRiskGrid] = React.useState(true);
 
   const geoJsonStyle = (feature) => {
     const color = getCategoryColor(feature.properties.category);
@@ -201,54 +275,45 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
       <MapContainer center={center} zoom={zoom} zoomControl={false} style={{ height: '100%', width: '100%', borderRadius: '0' }}>
         <MapClickHandler onLocationSelect={onLocationSelect} />
         <MapViewUpdater targetLoc={selectedLocation} routeData={routeData} />
-        <CustomMapControls onScanLocation={onScanLocation} locatingUser={locatingUser} />
+        <CustomMapControls 
+          onScanLocation={onScanLocation} 
+          locatingUser={locatingUser}
+          activeBaseMap={activeBaseMap}
+          setActiveBaseMap={setActiveBaseMap}
+          showRiskGrid={showRiskGrid}
+          setShowRiskGrid={setShowRiskGrid}
+        />
         
-        <LayersControl position="topright">
-          <BaseLayer name="OpenTopoMap (Topographic GIS)">
-            <TileLayer
-              attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
-              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-              maxZoom={17}
-            />
-          </BaseLayer>
+        {/* Dynamic Tile Layer rendering based on custom layer switcher */}
+        {activeBaseMap === 'satellite' && (
+          <TileLayer
+            attribution='&copy; <a href="https://www.esri.com/">Esri World Imagery</a>'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          />
+        )}
+        {activeBaseMap === 'topo' && (
+          <TileLayer
+            attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+            url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+            maxZoom={17}
+          />
+        )}
+        {activeBaseMap === 'osm' && (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        )}
 
-          <BaseLayer checked name="Satellite Imagery (Esri)">
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
-          </BaseLayer>
-
-          <BaseLayer name="Street Network (OSM)">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          </BaseLayer>
-
-          {/* Heatmap GeoJSON Layer */}
-          {heatmapData && heatmapData.features && (
-            <Overlay checked name="Landslide Risk Grid">
-              <GeoJSON 
-                key={JSON.stringify(heatmapData.summary || heatmapData.features.length)}
-                data={heatmapData} 
-                style={geoJsonStyle} 
-                onEachFeature={onEachFeature} 
-              />
-            </Overlay>
-          )}
-
-          <Overlay name="GSI Geology WMS Layer">
-            <WMSTileLayer
-              url="http://ogc.bgs.ac.uk/cgi-bin/BGS_GSI_Geology/wms?language=eng&"
-              layers="IND_GSI_2M_Geology"
-              format="image/png"
-              transparent={true}
-              opacity={0.6}
-              attribution="Geological Survey of India"
-            />
-          </Overlay>
-        </LayersControl>
+        {/* Heatmap GeoJSON Layer */}
+        {showRiskGrid && heatmapData && heatmapData.features && (
+          <GeoJSON 
+            key={JSON.stringify(heatmapData.summary || heatmapData.features.length)}
+            data={heatmapData} 
+            style={geoJsonStyle} 
+            onEachFeature={onEachFeature} 
+          />
+        )}
 
         {/* Render Original Blocked Route as a Faded Red Dashed Polyline if Rerouted */}
         {routeData?.is_rerouted && origCoords.length > 0 && (
