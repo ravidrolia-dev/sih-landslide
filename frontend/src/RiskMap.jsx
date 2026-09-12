@@ -78,6 +78,51 @@ const getCategoryColor = (cat) => {
   }
 };
 
+const CustomMapControls = () => {
+  const map = useMap();
+  
+  const handleZoomIn = (e) => {
+    e.stopPropagation();
+    map.zoomIn();
+  };
+
+  const handleZoomOut = (e) => {
+    e.stopPropagation();
+    map.zoomOut();
+  };
+
+  const handleResetView = (e) => {
+    e.stopPropagation();
+    map.flyTo([26.0, 92.8], 7, { duration: 1.2 });
+  };
+
+  const handleToggleFullscreen = (e) => {
+    e.stopPropagation();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => console.warn(err));
+    } else {
+      document.exitFullscreen().catch(err => console.warn(err));
+    }
+  };
+
+  return (
+    <div className="custom-map-controls-stack">
+      <button className="control-btn" onClick={handleZoomIn} title="Zoom In">
+        <span>+</span>
+      </button>
+      <button className="control-btn" onClick={handleZoomOut} title="Zoom Out">
+        <span>−</span>
+      </button>
+      <button className="control-btn" onClick={handleResetView} title="Reset View (NER Region)">
+        <span>◈</span>
+      </button>
+      <button className="control-btn" onClick={handleToggleFullscreen} title="Fullscreen">
+        <span>⛶</span>
+      </button>
+    </div>
+  );
+};
+
 const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, fieldReports, onClearRoute }) => {
   const center = [26.0, 92.8]; 
   const zoom = 7;
@@ -98,15 +143,13 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
     const catColor = getCategoryColor(p.category);
     layer.bindTooltip(`
       <div style="font-family: system-ui, sans-serif; padding: 4px; line-height: 1.4;">
-        <strong style="color: ${catColor}; font-size: 13px;">${p.district} (${p.state}) • ${p.category}</strong><br/>
-        <span>Landslide Risk: <strong>${p.risk_score}%</strong></span><br/>
-        <span style="font-size: 11px; color: #64748b;">Slope: ${p.slope}° | 72h Rain: ${p.rainfall_72h}mm</span>
+        <strong style="color: #ffffff; font-size: 12px;">${p.district} (${p.state})</strong><br/>
+        <span style="color: ${catColor}; font-weight: bold; font-size: 11px;">Risk Score: ${p.risk_score}% (${p.category})</span>
       </div>
-    `, { sticky: true });
+    `, { sticky: true, opacity: 0.95 });
 
     layer.on({
-      click: (e) => {
-        L.DomEvent.stopPropagation(e);
+      click: () => {
         onLocationSelect(p.center_lat, p.center_lon, `${p.district} (${p.state}) Grid`);
       }
     });
@@ -124,9 +167,10 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
 
   return (
     <div className="gis-map-container">
-      <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', borderRadius: '14px' }}>
+      <MapContainer center={center} zoom={zoom} zoomControl={false} style={{ height: '100%', width: '100%', borderRadius: '0' }}>
         <MapClickHandler onLocationSelect={onLocationSelect} />
         <MapViewUpdater targetLoc={selectedLocation} routeData={routeData} />
+        <CustomMapControls />
         
         <LayersControl position="topright">
           <BaseLayer name="OpenTopoMap (Topographic GIS)">

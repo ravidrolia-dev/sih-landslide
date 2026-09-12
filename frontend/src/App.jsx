@@ -50,6 +50,11 @@ function App() {
   const [selectedState, setSelectedState] = useState("All 8 NER States");
   const [selectedCategory, setSelectedCategory] = useState("All Tiers");
 
+  // Floating Panels & UI Expansion State (Zoom Earth Style)
+  const [isRoutePlannerOpen, setIsRoutePlannerOpen] = useState(false);
+  const [isInfoCardCollapsed, setIsInfoCardCollapsed] = useState(false);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
+
   // Modals state
   const [smsModalOpen, setSmsModalOpen] = useState(false);
   const [smsModalData, setSmsModalData] = useState({});
@@ -67,6 +72,9 @@ function App() {
   const activeRouteRef = useRef(activeRouteData);
   useEffect(() => {
     activeRouteRef.current = activeRouteData;
+    if (activeRouteData) {
+      setIsRoutePlannerOpen(true);
+    }
   }, [activeRouteData]);
 
   // Fetch ground-truth field reports & trigger dynamic route re-check
@@ -78,7 +86,6 @@ function App() {
         const reports = data.reports || [];
         setFieldReports(reports);
 
-        // If a route is active, re-check for newly submitted landslides
         if (activeRouteRef.current && activeRouteRef.current.origin) {
           recheckActiveRoute(activeRouteRef.current.origin.latitude, activeRouteRef.current.origin.longitude);
         }
@@ -130,6 +137,7 @@ function App() {
   const fetchRiskForLocation = async (lat, lon, name = null) => {
     setLoading(true);
     setError(null);
+    setIsInfoCardCollapsed(false);
     setSelectedLocation({ lat, lon, name: name || `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E` });
 
     try {
@@ -179,6 +187,7 @@ function App() {
     setLoading(true);
     setError(null);
     setLiveAlertMessage(null);
+    setIsRoutePlannerOpen(true);
     try {
       let url = `${API_BASE_URL}/emergency/evacuation-route?origin_lat=${originLat}&origin_lon=${originLon}`;
       if (destLat !== null && destLat !== undefined && destLon !== null && destLon !== undefined) {
@@ -263,79 +272,104 @@ function App() {
   };
 
   return (
-    <div className="app-layout">
-      {/* Top Navbar */}
-      <header className="app-navbar">
-        <div className="navbar-brand" onClick={() => setActiveTab('gis')}>
-          <span className="brand-icon">⛰️</span>
-          <div className="brand-text-group">
-            <span className="brand-title">NE-GeoAlert</span>
-            <span className="brand-tagline">Northeast India Landslide Risk & Evacuation GIS</span>
-          </div>
+    <div className="app-layout zoom-earth-layout">
+      {/* 100% Viewport Fullscreen Interactive Map Canvas */}
+      <div className="fullscreen-map-wrapper">
+        <RiskMap 
+          selectedLocation={selectedLocation} 
+          heatmapData={heatmapData}
+          routeData={activeRouteData}
+          fieldReports={fieldReports}
+          onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
+          onClearRoute={() => setActiveRouteData(null)}
+        />
+      </div>
+
+      {/* Top Floating Glass Navbar */}
+      <header className="floating-navbar-glass">
+        <div className="floating-brand" onClick={() => setActiveTab('gis')}>
+          <span className="brand-logo-icon">⛰️</span>
+          <span className="brand-title-text">NE-GeoAlert</span>
         </div>
 
-        <nav className="navbar-nav">
+        <nav className="floating-nav-pills">
           <button 
-            className={`nav-item ${activeTab === 'gis' ? 'active' : ''}`}
+            className={`floating-nav-btn ${activeTab === 'gis' ? 'active' : ''}`}
             onClick={() => setActiveTab('gis')}
+            title="Map View"
           >
-            🗺️ Map View
+            <span className="nav-btn-icon">🗺️</span>
+            <span className="nav-btn-text">Map View</span>
           </button>
+
           <button 
-            className={`nav-item ${activeTab === 'emergency' ? 'active' : ''}`}
+            className={`floating-nav-btn ${activeTab === 'emergency' ? 'active' : ''}`}
             onClick={() => setActiveTab('emergency')}
+            title="Emergency Ops"
           >
-            🚨 Emergency Ops
+            <span className="nav-btn-icon">🚨</span>
+            <span className="nav-btn-text">Emergency Ops</span>
           </button>
+
           <button 
-            className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
+            className={`floating-nav-btn ${activeTab === 'reports' ? 'active' : ''}`}
             onClick={() => setActiveTab('reports')}
+            title="Field Reports"
           >
-            📷 Field Reports
+            <span className="nav-btn-icon">📷</span>
+            <span className="nav-btn-text">Field Reports</span>
           </button>
+
           <button 
-            className={`nav-item ${activeTab === 'backtest' ? 'active' : ''}`}
+            className={`floating-nav-btn ${activeTab === 'backtest' ? 'active' : ''}`}
             onClick={() => setActiveTab('backtest')}
+            title="Model Backtest"
           >
-            📊 Model Backtest
+            <span className="nav-btn-icon">📊</span>
+            <span className="nav-btn-text">Model Backtest</span>
           </button>
+
           <button 
-            className="nav-item alerts-btn"
+            className="floating-nav-btn alerts-pill"
             onClick={() => openAlertModal()}
+            title="SMS Dispatch"
           >
-            🔔 SMS Dispatch
+            <span className="nav-btn-icon">🔔</span>
+            <span className="nav-btn-text">SMS Dispatch</span>
           </button>
         </nav>
 
-        <div className="navbar-right">
+        <div className="floating-header-right">
           <button 
-            className={`btn-my-location ${locatingUser ? 'locating' : ''}`}
+            className={`floating-icon-btn ${locatingUser ? 'locating' : ''}`}
             onClick={handleScanUserLocation}
             disabled={locatingUser}
+            title="My Location"
           >
-            {locatingUser ? '🛰️ Locking...' : '📍 My Location'}
+            <span className="icon-symbol">📍</span>
+            <span className="hover-label">{locatingUser ? 'Locking...' : 'My Location'}</span>
           </button>
 
           <button 
-            className="btn-settings-icon"
+            className="floating-icon-btn"
             onClick={() => setDiagModalOpen(true)}
             title="System Diagnostics & Settings"
           >
-            ⚙️
+            <span className="icon-symbol">⚙️</span>
           </button>
         </div>
       </header>
 
-      {/* Toolbar / Control Bar (GIS View) */}
+      {/* GIS Mode Floating Controls */}
       {activeTab === 'gis' && (
-        <div className="gis-control-toolbar">
-          {/* Location Search Container */}
-          <div className="search-input-box">
+        <>
+          {/* Search Bar (Floating Upper-Left) */}
+          <div className="floating-search-box">
             <span className="search-icon">🔍</span>
             <input 
               type="text"
-              className="search-field"
-              placeholder="Search location, district, or road..."
+              className="floating-search-input"
+              placeholder="Search location, district, road..."
               value={searchQuery}
               onChange={handleSearchChange}
             />
@@ -344,7 +378,7 @@ function App() {
             )}
 
             {searchResults.length > 0 && (
-              <div className="search-results-dropdown">
+              <div className="floating-search-dropdown">
                 {searchResults.map((loc, idx) => (
                   <div 
                     key={idx} 
@@ -362,24 +396,10 @@ function App() {
             )}
           </div>
 
-          {/* Quick Presets Row */}
-          <div className="preset-chips-row">
-            <span className="chips-label">Presets:</span>
-            {PRESET_LOCATIONS.slice(0, 6).map((loc, idx) => (
-              <button
-                key={idx}
-                className={`preset-chip ${selectedLocation.name === loc.name ? 'active' : ''}`}
-                onClick={() => fetchRiskForLocation(loc.lat, loc.lon, loc.name)}
-              >
-                {loc.name.split(' ')[0]}
-              </button>
-            ))}
-          </div>
-
-          {/* Coverage Filters */}
-          <div className="toolbar-filters">
+          {/* Floating Risk & State Filters (Upper-Right) */}
+          <div className="floating-filters-bar">
             <select 
-              className="filter-select-dropdown"
+              className="floating-filter-select"
               value={selectedState} 
               onChange={e => setSelectedState(e.target.value)}
             >
@@ -388,11 +408,11 @@ function App() {
               ))}
             </select>
 
-            <div className="tier-filter-buttons">
+            <div className="floating-tier-chips">
               {TIER_OPTIONS.map((cat, i) => (
                 <button
                   key={i}
-                  className={`btn-tier-filter ${cat.toLowerCase()} ${selectedCategory === cat ? 'active' : ''}`}
+                  className={`floating-tier-btn ${cat.toLowerCase()} ${selectedCategory === cat ? 'active' : ''}`}
                   onClick={() => setSelectedCategory(cat)}
                 >
                   {cat}
@@ -400,86 +420,125 @@ function App() {
               ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {liveAlertMessage && (
-        <div className="live-route-alert-banner">
-          <span>{liveAlertMessage}</span>
-          <button onClick={() => setLiveAlertMessage(null)}>✕</button>
-        </div>
-      )}
+          {/* Floating Route Planner Button & Collapsible Glass Panel (Right Side) */}
+          <div className="floating-route-container">
+            <button 
+              className={`floating-route-toggle-btn ${isRoutePlannerOpen ? 'active' : ''}`}
+              onClick={() => setIsRoutePlannerOpen(prev => !prev)}
+              title="Landslide-Safe Route Planner"
+            >
+              <span className="route-icon">🧭</span>
+              <span className="hover-label">Landslide-Safe Route</span>
+            </button>
 
-      {/* Main View Content */}
-      <main className="app-main-workspace">
-        {activeTab === 'gis' ? (
-          <div className="gis-main-grid">
-            {/* GIS Map Canvas (Left Column) */}
-            <div className="gis-map-column">
-              <RiskMap 
-                selectedLocation={selectedLocation} 
-                heatmapData={heatmapData}
-                routeData={activeRouteData}
-                fieldReports={fieldReports}
-                onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
-                onClearRoute={() => setActiveRouteData(null)}
-              />
+            {isRoutePlannerOpen && (
+              <div className="floating-route-drawer-glass">
+                <div className="drawer-header">
+                  <h3>🧭 Landslide-Safe Route Planner</h3>
+                  <button className="btn-close-drawer" onClick={() => setIsRoutePlannerOpen(false)}>✕</button>
+                </div>
+                <RoutePlannerCard 
+                  selectedLocation={selectedLocation}
+                  onCalculateRoute={handleSelectRoute}
+                  activeRouteData={activeRouteData}
+                  onClearRoute={() => setActiveRouteData(null)}
+                  loading={loading}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Floating Location Risk Information Card (Bottom-Right) */}
+          {riskData && (
+            <div className="floating-info-card-container">
+              {isInfoCardCollapsed ? (
+                <div className="floating-chip-mini" onClick={() => setIsInfoCardCollapsed(false)}>
+                  <span className="chip-pin">📍</span>
+                  <span className="chip-name">{selectedLocation.name || 'Queried Point'}</span>
+                  <span className={`chip-badge ${riskData.category?.toLowerCase()}`}>
+                    {riskData.category || 'RISK'} ({riskData.risk_score}%)
+                  </span>
+                  <span className="expand-icon">▲</span>
+                </div>
+              ) : (
+                <div className="floating-info-card-glass">
+                  <div className="info-card-bar">
+                    <span className="card-bar-title">📍 Location Intel</span>
+                    <button className="collapse-btn" onClick={() => setIsInfoCardCollapsed(true)} title="Collapse Card">▼</button>
+                  </div>
+                  <RiskPanel 
+                    data={riskData} 
+                    loading={loading} 
+                    error={error} 
+                    locationName={selectedLocation.name}
+                    onOpenSmsModal={openAlertModal}
+                    onFindSafeRoute={(lat, lon, name) => {
+                      setIsRoutePlannerOpen(true);
+                      handleSelectRoute(lat, lon, name);
+                    }}
+                  />
+                </div>
+              )}
             </div>
+          )}
 
-            {/* Risk Intelligence Panel & Route Planner (Right Column) */}
-            <div className="gis-panel-column">
-              <RoutePlannerCard 
-                selectedLocation={selectedLocation}
-                onCalculateRoute={handleSelectRoute}
+          {/* Floating Compact Risk Legend (Bottom-Left) */}
+          <div className="floating-legend-container">
+            {isLegendExpanded ? (
+              <div className="floating-legend-glass">
+                <div className="legend-header" onClick={() => setIsLegendExpanded(false)}>
+                  <span className="legend-title">● Risk Legend</span>
+                  <span className="collapse-icon">▼</span>
+                </div>
+                <div className="legend-items">
+                  <div className="leg-row"><span className="dot watch">●</span> Watch (&lt;25%)</div>
+                  <div className="leg-row"><span className="dot alert">●</span> Alert (25–50%)</div>
+                  <div className="leg-row"><span className="dot warning">●</span> Warning (50–75%)</div>
+                  <div className="leg-row"><span className="dot severe">●</span> Severe (&gt;75%)</div>
+                  <div className="leg-row"><span className="dot hazard">⚠️</span> Landslide Obstacle</div>
+                </div>
+              </div>
+            ) : (
+              <div className="floating-legend-pill" onClick={() => setIsLegendExpanded(true)}>
+                <span className="dot watch">●</span>
+                <span className="legend-label">Risk Legend</span>
+                <span className="expand-icon">▲</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Floating Overlay Pages for non-GIS Tabs (Emergency Ops, Field Reports, Model Backtest) */}
+      {activeTab !== 'gis' && (
+        <div className="floating-tab-page-container">
+          <div className="tab-page-glass-body">
+            <button className="btn-close-tab-page" onClick={() => setActiveTab('gis')}>
+              ✕ Return to Fullscreen Map
+            </button>
+            {activeTab === 'emergency' ? (
+              <EmergencyPanel 
+                onSelectRoute={handleSelectRoute}
                 activeRouteData={activeRouteData}
-                onClearRoute={() => setActiveRouteData(null)}
-                loading={loading}
-              />
-              <RiskPanel 
-                data={riskData} 
-                loading={loading} 
-                error={error} 
-                locationName={selectedLocation.name}
                 onOpenSmsModal={openAlertModal}
-                onFindSafeRoute={(lat, lon, name) => handleSelectRoute(lat, lon, name)}
+                onSwitchToMap={() => setActiveTab('gis')}
               />
-            </div>
+            ) : activeTab === 'reports' ? (
+              <FieldReportPanel onReportSubmitted={fetchFieldReports} />
+            ) : (
+              <BacktestPanel />
+            )}
           </div>
-        ) : activeTab === 'emergency' ? (
-          <div className="tab-page-wrapper">
-            <EmergencyPanel 
-              onSelectRoute={handleSelectRoute}
-              activeRouteData={activeRouteData}
-              onOpenSmsModal={openAlertModal}
-              onSwitchToMap={() => setActiveTab('gis')}
-            />
-          </div>
-        ) : activeTab === 'reports' ? (
-          <div className="tab-page-wrapper">
-            <FieldReportPanel 
-              onReportSubmitted={fetchFieldReports}
-            />
-          </div>
-        ) : (
-          <div className="tab-page-wrapper">
-            <BacktestPanel />
-          </div>
-        )}
-      </main>
+        </div>
+      )}
 
       {/* Modals */}
-      <SmsControlModal 
-        isOpen={smsModalOpen}
-        onClose={() => setSmsModalOpen(false)}
-        initialData={smsModalData}
-      />
-
-      <SystemDiagnosticsModal 
-        isOpen={diagModalOpen}
-        onClose={() => setDiagModalOpen(false)}
-      />
+      <SmsControlModal isOpen={smsModalOpen} onClose={() => setSmsModalOpen(false)} initialData={smsModalData} />
+      <SystemDiagnosticsModal isOpen={diagModalOpen} onClose={() => setDiagModalOpen(false)} />
     </div>
   );
 }
 
 export default App;
+
