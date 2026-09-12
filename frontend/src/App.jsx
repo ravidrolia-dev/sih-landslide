@@ -282,6 +282,8 @@ function App() {
           fieldReports={fieldReports}
           onLocationSelect={(lat, lon, name) => fetchRiskForLocation(lat, lon, name)}
           onClearRoute={() => setActiveRouteData(null)}
+          onScanLocation={handleScanUserLocation}
+          locatingUser={locatingUser}
         />
       </div>
 

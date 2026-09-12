@@ -78,7 +78,7 @@ const getCategoryColor = (cat) => {
   }
 };
 
-const CustomMapControls = () => {
+const CustomMapControls = ({ onScanLocation, locatingUser }) => {
   const map = useMap();
   
   const handleZoomIn = (e) => {
@@ -89,6 +89,13 @@ const CustomMapControls = () => {
   const handleZoomOut = (e) => {
     e.stopPropagation();
     map.zoomOut();
+  };
+
+  const handleLocateUser = (e) => {
+    e.stopPropagation();
+    if (onScanLocation) {
+      onScanLocation();
+    }
   };
 
   const handleResetView = (e) => {
@@ -113,6 +120,21 @@ const CustomMapControls = () => {
       <button className="control-btn" onClick={handleZoomOut} title="Zoom Out">
         <span>−</span>
       </button>
+      <button 
+        className={`control-btn ${locatingUser ? 'locating' : ''}`} 
+        onClick={handleLocateUser} 
+        title="My Location (Live GPS)"
+        disabled={locatingUser}
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="8"></circle>
+          <line x1="12" y1="2" x2="12" y2="5"></line>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+          <line x1="2" y1="12" x2="5" y2="12"></line>
+          <line x1="19" y1="12" x2="22" y2="12"></line>
+          <circle cx="12" cy="12" r="2.5" fill="currentColor"></circle>
+        </svg>
+      </button>
       <button className="control-btn" onClick={handleResetView} title="Reset View (NER Region)">
         <span>◈</span>
       </button>
@@ -123,7 +145,7 @@ const CustomMapControls = () => {
   );
 };
 
-const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, fieldReports, onClearRoute }) => {
+const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, fieldReports, onClearRoute, onScanLocation, locatingUser }) => {
   const center = [26.0, 92.8]; 
   const zoom = 7;
 
@@ -170,7 +192,7 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
       <MapContainer center={center} zoom={zoom} zoomControl={false} style={{ height: '100%', width: '100%', borderRadius: '0' }}>
         <MapClickHandler onLocationSelect={onLocationSelect} />
         <MapViewUpdater targetLoc={selectedLocation} routeData={routeData} />
-        <CustomMapControls />
+        <CustomMapControls onScanLocation={onScanLocation} locatingUser={locatingUser} />
         
         <LayersControl position="topright">
           <BaseLayer name="OpenTopoMap (Topographic GIS)">
