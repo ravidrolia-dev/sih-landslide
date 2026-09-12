@@ -1668,7 +1668,7 @@ html, body, #root {
   border-radius: 0 !important;
 }
 
-/* Top Floating Glass Navbar */
+/* Top Floating Ultra-Premium Glass Navbar */
 .floating-navbar-glass {
   position: fixed;
   top: 14px;
@@ -1677,14 +1677,15 @@ html, body, #root {
   z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 6px 16px;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  gap: 14px;
+  padding: 6px 14px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 32px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
 }
 
 .floating-brand {
@@ -1692,45 +1693,60 @@ html, body, #root {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding-right: 8px;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding-right: 12px;
+  padding-left: 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .brand-logo-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
 }
 
 .brand-title-text {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
-  color: #ffffff;
+  color: #f8fafc;
   letter-spacing: -0.2px;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .floating-nav-pills {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 26px;
+  padding: 4px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .floating-nav-btn {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 20px;
   border: 1px solid transparent;
   background: transparent;
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   white-space: nowrap;
+  position: relative;
 }
 
 .nav-btn-icon {
-  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -1746,30 +1762,36 @@ html, body, #root {
 .floating-nav-btn.active .nav-btn-text {
   max-width: 140px;
   opacity: 1;
-  margin-left: 6px;
+  margin-left: 7px;
 }
 
 .floating-nav-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
   color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .floating-nav-btn.active {
-  background: rgba(56, 189, 248, 0.2);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.28) 0%, rgba(14, 165, 233, 0.15) 100%);
   color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  font-weight: 700;
 }
 
 .floating-nav-btn.alerts-pill {
-  background: rgba(239, 68, 68, 0.15);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(220, 38, 38, 0.12) 100%);
   color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
 }
 
 .floating-nav-btn.alerts-pill:hover {
-  background: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.2) 100%);
+  border-color: rgba(239, 68, 68, 0.6);
   color: #ffffff;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
 }
 
 .floating-header-right {
