@@ -167,14 +167,6 @@ const RoutePlannerCard = ({
 
   return (
     <div className="route-planner-card">
-      <div className="planner-header">
-        <span className="planner-icon">🗺️</span>
-        <div className="planner-title">
-          <h4>DYNAMIC LANDSLIDE-SAFE ROUTE PLANNER</h4>
-          <p>Search any city, station, landmark or address like Google Maps</p>
-        </div>
-      </div>
-
       <div className="planner-inputs-container">
         {/* Source Input (Origin) */}
         <div className="input-group-row search-relative">
@@ -233,7 +225,11 @@ const RoutePlannerCard = ({
                 className={`btn-auto-hub-pill ${isAutoHub ? 'active' : ''}`}
                 onClick={handleSelectAutoHub}
               >
-                🏥 Auto Relief Hub
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Auto Relief Hub
               </button>
             </div>
             <input 
@@ -249,7 +245,12 @@ const RoutePlannerCard = ({
           {showDestDropdown && destResults.length > 0 && (
             <div className="geocode-dropdown-list">
               <div className="geocode-item special-hub" onClick={handleSelectAutoHub}>
-                <span className="item-icon">🏥</span>
+                <span className="item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </span>
                 <div className="item-text">
                   <span className="item-title">Auto Nearest Relief Hub</span>
                   <span className="item-sub">Automatically finds closest safe emergency hub</span>
@@ -261,7 +262,12 @@ const RoutePlannerCard = ({
                   className="geocode-item"
                   onClick={() => handleSelectDestItem(item)}
                 >
-                  <span className="item-icon">🏁</span>
+                  <span className="item-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                  </span>
                   <div className="item-text">
                     <span className="item-title">{item.name}</span>
                     <span className="item-sub">{item.subtitle}</span>
@@ -298,7 +304,10 @@ const RoutePlannerCard = ({
           onClick={handleCalculate}
           disabled={loading}
         >
-          {loading ? '⚡ Calculating Safe Route...' : '🚀 Calculate Landslide-Safe Route'}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+            <polygon points="12 2 19 21 12 17 5 21 12 2"></polygon>
+          </svg>
+          {loading ? 'Calculating Safe Route...' : 'Calculate Landslide-Safe Route'}
         </button>
 
         {activeRouteData && (
