@@ -428,23 +428,25 @@ function App() {
               className="floating-filter-select"
               value={selectedState} 
               onChange={e => setSelectedState(e.target.value)}
+              title="Filter by State"
             >
               {STATE_OPTIONS.map((st, i) => (
                 <option key={i} value={st}>{st}</option>
               ))}
             </select>
 
-            <div className="floating-tier-chips">
-              {TIER_OPTIONS.map((cat, i) => (
-                <button
-                  key={i}
-                  className={`floating-tier-btn ${cat.toLowerCase()} ${selectedCategory === cat ? 'active' : ''}`}
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            <select 
+              className={`floating-filter-select risk-select ${selectedCategory.toLowerCase()}`}
+              value={selectedCategory} 
+              onChange={e => setSelectedCategory(e.target.value)}
+              title="Filter by Risk Tier"
+            >
+              <option value="All">Risk: All Tiers</option>
+              <option value="Severe">Severe (&gt;75%)</option>
+              <option value="Warning">Warning (50–75%)</option>
+              <option value="Alert">Alert (25–50%)</option>
+              <option value="Watch">Watch (&lt;25%)</option>
+            </select>
           </div>
 
           {/* Floating Route Planner Button & Collapsible Glass Panel (Right Side) */}

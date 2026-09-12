@@ -1904,68 +1904,66 @@ html, body, #root {
 /* Floating Risk & State Filters (Upper Right) */
 .floating-filters-bar {
   position: fixed;
-  top: 72px;
+  top: 70px;
   right: 20px;
   z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  padding: 4px 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  padding: 3px 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .floating-filter-select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #f8fafc;
-  padding: 4px 10px;
-  border-radius: 16px;
-  font-size: 12px;
+  padding: 3px 8px;
+  height: 26px;
+  border-radius: 14px;
+  font-size: 11px;
   font-weight: 600;
   outline: none;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.floating-filter-select:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #ffffff;
 }
 
 .floating-filter-select option {
   background: #0f172a;
   color: #ffffff;
+  padding: 6px;
 }
 
-.floating-tier-chips {
-  display: flex;
-  gap: 4px;
+.floating-filter-select.risk-select.severe {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
 }
 
-.floating-tier-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid transparent;
-  color: #94a3b8;
-  padding: 4px 10px;
-  border-radius: 14px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.floating-filter-select.risk-select.warning {
+  border-color: rgba(249, 115, 22, 0.5);
+  color: #fb923c;
 }
 
-.floating-tier-btn:hover {
-  color: #ffffff;
+.floating-filter-select.risk-select.alert {
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #facc15;
 }
 
-.floating-tier-btn.active {
-  background: rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.4);
+.floating-filter-select.risk-select.watch {
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #34d399;
 }
-
-.floating-tier-btn.severe.active { background: rgba(239, 68, 68, 0.25); color: #f87171; border-color: rgba(239, 68, 68, 0.4); }
-.floating-tier-btn.warning.active { background: rgba(249, 115, 22, 0.25); color: #fb923c; border-color: rgba(249, 115, 22, 0.4); }
-.floating-tier-btn.alert.active { background: rgba(234, 179, 8, 0.25); color: #facc15; border-color: rgba(234, 179, 8, 0.4); }
 
 /* Glassmorphism Styling for Leaflet Native Controls (Top-Right Layers Switcher) */
 .leaflet-control-layers {
