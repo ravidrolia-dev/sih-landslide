@@ -2155,7 +2155,7 @@ html, body, #root {
 /* Floating Route Planner Button & Drawer */
 .floating-route-container {
   position: fixed;
-  top: 130px;
+  top: 110px;
   right: 20px;
   z-index: 1000;
 }
@@ -2203,19 +2203,19 @@ html, body, #root {
 
 .floating-route-drawer-glass {
   position: fixed;
-  top: 130px;
+  top: 110px;
   right: 20px;
-  width: 380px;
-  max-height: calc(100vh - 170px);
+  width: 340px;
+  max-height: calc(100vh - 360px);
   overflow-y: auto;
   background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-  z-index: 1010;
+  padding: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  z-index: 1005;
   animation: drawerSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2311,7 +2311,7 @@ html, body, #root {
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   padding: 10px 12px;
-  max-height: calc(100vh - 120px);
+  max-height: 230px;
   overflow-y: auto;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   animation: cardFadeUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
