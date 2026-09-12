@@ -470,17 +470,23 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
           <div className="route-card-main">
             <div className="route-header-line">
               {routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? (
-                <span className="route-badge no-route">🔴 NO SAFE ROUTE AVAILABLE</span>
+                <span className="route-badge no-route">
+                  <span className="dot severe" style={{ marginRight: '4px', color: '#ef4444' }}>●</span> NO SAFE ROUTE AVAILABLE
+                </span>
               ) : routeData.is_rerouted ? (
-                <span className="route-badge warning">⚠️ ROUTE AUTOMATICALLY CHANGED</span>
+                <span className="route-badge warning">
+                  <span className="dot warning" style={{ marginRight: '4px', color: '#f97316' }}>●</span> ROUTE AUTOMATICALLY REROUTED
+                </span>
               ) : (
-                <span className="route-badge safe">🟢 SAFE ROUTE</span>
+                <span className="route-badge safe">
+                  <span className="dot watch" style={{ marginRight: '4px', color: '#10b981' }}>●</span> SAFE ROUTE
+                </span>
               )}
             </div>
 
             {routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? (
               <p className="route-reroute-msg red">
-                🔴 All available highway routes are currently affected by active landslide hazards. Evacuation suspended.
+                All available highway routes are currently affected by active landslide hazards. Evacuation suspended.
               </p>
             ) : routeData.is_rerouted ? (
               <p className="route-reroute-msg amber">

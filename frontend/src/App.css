@@ -357,20 +357,23 @@ html, body, #root {
 .legend-color { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
 .floating-route-card {
-  position: absolute;
-  top: 14px;
-  right: 20px;
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
-  background: rgba(17, 24, 39, 0.94);
-  backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(56, 189, 248, 0.4);
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-radius: 16px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  gap: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
   max-width: 520px;
+  animation: cardFadeUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .floating-route-card.rerouted {
@@ -2155,7 +2158,7 @@ html, body, #root {
 /* Floating Route Planner Button & Drawer */
 .floating-route-container {
   position: fixed;
-  top: 110px;
+  top: 130px;
   right: 20px;
   z-index: 1000;
 }
@@ -2203,19 +2206,19 @@ html, body, #root {
 
 .floating-route-drawer-glass {
   position: fixed;
-  top: 110px;
+  top: 130px;
   right: 20px;
-  width: 340px;
-  max-height: calc(100vh - 360px);
+  width: 380px;
+  max-height: calc(100vh - 170px);
   overflow-y: auto;
   background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 18px;
-  padding: 14px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
-  z-index: 1005;
+  padding: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  z-index: 1010;
   animation: drawerSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2311,7 +2314,7 @@ html, body, #root {
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   padding: 10px 12px;
-  max-height: 230px;
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
   animation: cardFadeUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
