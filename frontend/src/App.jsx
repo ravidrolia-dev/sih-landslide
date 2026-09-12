@@ -349,14 +349,6 @@ function App() {
             <span className="icon-symbol">📍</span>
             <span className="hover-label">{locatingUser ? 'Locking...' : 'My Location'}</span>
           </button>
-
-          <button 
-            className="floating-icon-btn"
-            onClick={() => setDiagModalOpen(true)}
-            title="System Diagnostics & Settings"
-          >
-            <span className="icon-symbol">⚙️</span>
-          </button>
         </div>
       </header>
 
