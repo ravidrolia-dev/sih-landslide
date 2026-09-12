@@ -1887,24 +1887,102 @@ html, body, #root {
   font-weight: 500;
 }
 
-.floating-search-input::placeholder {
-  color: #64748b;
+.btn-clear-search {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #94a3b8;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
 }
 
+.btn-clear-search:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+.floating-search-results,
 .floating-search-dropdown {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  right: 0;
-  background: rgba(15, 23, 42, 0.75);
+  width: 100%;
+  min-width: 320px;
+  background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  max-height: 260px;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  max-height: 280px;
   overflow-y: auto;
+  z-index: 1050;
+  padding: 6px;
+}
+
+.floating-search-results .search-item,
+.floating-search-dropdown .search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.floating-search-results .search-item:last-child,
+.floating-search-dropdown .search-item:last-child {
+  border-bottom: none;
+}
+
+.floating-search-results .search-item:hover,
+.floating-search-dropdown .search-item:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.floating-search-results .search-item-icon,
+.floating-search-dropdown .search-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.12);
+  flex-shrink: 0;
+}
+
+.floating-search-results .search-item-info,
+.floating-search-dropdown .search-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.floating-search-results .search-item-title,
+.floating-search-dropdown .search-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.floating-search-results .search-item-sub,
+.floating-search-dropdown .search-item-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
 }
 
 /* Floating Risk & State Filters (Upper Right) */
