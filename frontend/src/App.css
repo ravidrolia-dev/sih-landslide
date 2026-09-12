@@ -2445,7 +2445,50 @@ html, body, #root {
 }
 
 .floating-info-card-glass .shap-drivers-section {
-  display: none;
+  display: block;
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.floating-info-card-glass .btn-shap-toggle {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.floating-info-card-glass .btn-shap-toggle:hover {
+  color: #38bdf8;
+}
+
+.floating-info-card-glass .shap-drivers-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.floating-info-card-glass .shap-driver-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.floating-info-card-glass .driver-meta {
+  font-size: 9px;
+}
+
+.floating-info-card-glass .driver-bar-track {
+  height: 3px;
 }
 
 .collapse-btn {
