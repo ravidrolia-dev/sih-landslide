@@ -189,7 +189,13 @@ const CustomMapControls = ({
               className={`layer-opt-btn ${activeBaseMap === 'satellite' ? 'selected' : ''}`}
               onClick={() => setActiveBaseMap('satellite')}
             >
-              <span className="opt-icon">🛰️</span>
+              <span className="opt-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+              </span>
               <span className="opt-label">Satellite (Esri)</span>
             </button>
 
@@ -197,7 +203,11 @@ const CustomMapControls = ({
               className={`layer-opt-btn ${activeBaseMap === 'topo' ? 'selected' : ''}`}
               onClick={() => setActiveBaseMap('topo')}
             >
-              <span className="opt-icon">⛰️</span>
+              <span className="opt-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3l4 8 5-5 5 15H2L8 3z"></path>
+                </svg>
+              </span>
               <span className="opt-label">Topographic (OpenTopo)</span>
             </button>
 
@@ -205,7 +215,13 @@ const CustomMapControls = ({
               className={`layer-opt-btn ${activeBaseMap === 'osm' ? 'selected' : ''}`}
               onClick={() => setActiveBaseMap('osm')}
             >
-              <span className="opt-icon">🗺️</span>
+              <span className="opt-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                  <line x1="8" y1="2" x2="8" y2="18"></line>
+                  <line x1="16" y1="6" x2="16" y2="22"></line>
+                </svg>
+              </span>
               <span className="opt-label">Streets (OpenStreetMap)</span>
             </button>
           </div>
@@ -216,7 +232,15 @@ const CustomMapControls = ({
               className={`layer-opt-btn ${showRiskGrid ? 'selected' : ''}`}
               onClick={() => setShowRiskGrid(!showRiskGrid)}
             >
-              <span className="opt-icon">{showRiskGrid ? '🟢' : '⚪'}</span>
+              <span className="opt-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={showRiskGrid ? "#38bdf8" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="3" y1="15" x2="21" y2="15"></line>
+                  <line x1="9" y1="3" x2="9" y2="21"></line>
+                  <line x1="15" y1="3" x2="15" y2="21"></line>
+                </svg>
+              </span>
               <span className="opt-label">Landslide Risk Grid</span>
             </button>
           </div>
