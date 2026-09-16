@@ -4,7 +4,10 @@ import os
 import sys
 import urllib.request
 import json
+import threading
+import time
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Ensure sys.path includes backend and ml
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -552,10 +555,29 @@ def _process_settlement_priority(item):
         "recommended_action": recommended_action
     }
 
-def get_emergency_priority_list():
-    """Outputs auto-ranked priority list for District Collectors."""
+_EMERGENCY_LIST_CACHE = None
+_EMERGENCY_CACHE_TIMESTAMP = 0
+_EMERGENCY_CACHE_LOCK = threading.Lock()
+EMERGENCY_CACHE_TTL = 1800  # 30 minutes TTL
+
+def get_emergency_priority_list(refresh: bool = False):
+    """
+    Outputs auto-ranked priority list for District Collectors.
+    Uses 30-minute memory caching and low-concurrency ThreadPoolExecutor (max_workers=2)
+    to prevent memory limit exhaustion on Render containers.
+    """
+    global _EMERGENCY_LIST_CACHE, _EMERGENCY_CACHE_TIMESTAMP
+    
+    now = time.time()
+    with _EMERGENCY_CACHE_LOCK:
+        if not refresh and _EMERGENCY_LIST_CACHE is not None and (now - _EMERGENCY_CACHE_TIMESTAMP) < EMERGENCY_CACHE_TTL:
+            print(f"[Emergency Cache Hit] Returning cached priority list (Age: {round(now - _EMERGENCY_CACHE_TIMESTAMP, 1)}s)")
+            return _EMERGENCY_LIST_CACHE
+
+    print("[Emergency Cache Miss] Calculating priority list for NER settlements...")
     results = []
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    # Reduce max_workers from 10 to 2 to keep memory footprint minimal on Render
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(_process_settlement_priority, item) for item in NER_SETTLEMENTS]
         for future in as_completed(futures):
             try:
@@ -564,4 +586,10 @@ def get_emergency_priority_list():
                 print(f"[Routing Error] Settlement processing failed: {e}")
 
     results.sort(key=lambda x: x["priority_score"], reverse=True)
+    
+    with _EMERGENCY_CACHE_LOCK:
+        _EMERGENCY_LIST_CACHE = results
+        _EMERGENCY_CACHE_TIMESTAMP = time.time()
+        
     return results
+

@@ -75,13 +75,20 @@ def get_grid_risk(db: Session = Depends(get_db)):
 
 import sys
 import os
+import time
+import threading
+from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from ml.predict import predict_risk
+from ml.predict import predict_risk, get_model_and_explainer
 from ml.gee_service import get_all_features, init_gee
+
+_LOCATION_RISK_CACHE = {}
+_LOCATION_RISK_LOCK = threading.Lock()
+LOCATION_RISK_CACHE_TTL = 3600  # 1 hour TTL for location risk predictions
 
 @app.on_event("startup")
 def startup_gee_init():
-    """Attempt GEE authentication during application startup."""
+    """Attempt GEE authentication and pre-load ML model singleton during application startup."""
     try:
         print("[Startup] Initializing Google Earth Engine authentication...")
         init_gee()
@@ -89,13 +96,29 @@ def startup_gee_init():
     except Exception as e:
         print(f"[Startup Warning] GEE initialization notice: {e}")
 
+    try:
+        print("[Startup] Pre-loading XGBoost model & SHAP explainer singleton...")
+        get_model_and_explainer()
+    except Exception as e:
+        print(f"[Startup Warning] ML Model pre-loading notice: {e}")
+
 @app.get("/risk/location")
-def get_location_risk(lat: float, lon: float):
+def get_location_risk(lat: float, lon: float, refresh: bool = False):
     """
     Fetches real-time satellite metrics (SRTM DEM, Sentinel-2 NDVI, GPM IMERG Rainfall)
     from Google Earth Engine and predicts landslide risk with SHAP explainability.
-    Raises HTTPException 500 if GEE authentication or feature extraction fails.
+    Utilizes 1-hour coordinate caching (~100m precision) to optimize RAM and eliminate GEE overhead.
     """
+    cache_key = (round(lat, 3), round(lon, 3))
+    now = time.time()
+    
+    with _LOCATION_RISK_LOCK:
+        if not refresh and cache_key in _LOCATION_RISK_CACHE:
+            cached_result, timestamp = _LOCATION_RISK_CACHE[cache_key]
+            if now - timestamp < LOCATION_RISK_CACHE_TTL:
+                print(f"[Risk Location Cache Hit] Returning cached risk analysis for ({lat}, {lon}) (Age: {round(now - timestamp, 1)}s)")
+                return cached_result
+
     try:
         gee_features = get_all_features(lat, lon)
     except Exception as e:
@@ -139,7 +162,7 @@ def get_location_risk(lat: float, lon: float):
     else:
         category = "Watch"
         
-    return {
+    result = {
         "coordinates": {"latitude": lat, "longitude": lon},
         "risk_score": round(risk_score, 2),
         "category": category,
@@ -151,19 +174,26 @@ def get_location_risk(lat: float, lon: float):
             "precipitation": "NASA GPM IMERG 30-min (GEE)"
         }
     }
+    
+    with _LOCATION_RISK_LOCK:
+        if len(_LOCATION_RISK_CACHE) > 500:
+            _LOCATION_RISK_CACHE.clear()
+        _LOCATION_RISK_CACHE[cache_key] = (result, now)
+
+    return result
 
 from routing_service import get_emergency_priority_list, calculate_safe_alternative_route, check_route_landslide_risk
 import field_report_service
 
 @app.get("/emergency/priority-list")
-def get_priority_list():
+def get_priority_list(refresh: bool = False):
     """
     Returns auto-ranked Emergency Response Prioritisation List for District Collectors.
-    Formula: Priority Score = Risk Score x Population Exposure
+    Formula: Priority Score = Risk Score (0-100) x Population Exposure Factor
     """
     return {
         "formula": "Priority Score = Risk Score (0-100) x Population Exposure Factor",
-        "priority_queue": get_emergency_priority_list()
+        "priority_queue": get_emergency_priority_list(refresh=refresh)
     }
 
 @app.get("/emergency/evacuation-route")
@@ -410,7 +440,7 @@ def get_spatial_risk_heatmap(district: str = None, category: str = None, refresh
             }
 
         all_features = []
-        with ThreadPoolExecutor(max_workers=16) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             futures = [executor.submit(query_cell_gee, cell) for cell in cell_points]
             for future in as_completed(futures):
                 all_features.append(future.result())

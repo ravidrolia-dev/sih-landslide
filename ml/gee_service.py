@@ -223,18 +223,36 @@ def get_rainfall_gpm(lat: float, lon: float, date_str: str = None) -> dict:
     return {"rainfall_24h": round(r24, 2), "rainfall_72h": round(r72, 2)}
 
 
+import threading
+import time
+
+_GEE_FEATURE_CACHE = {}
+_GEE_CACHE_LOCK = threading.Lock()
+GEE_CACHE_TTL = 3600  # 1 hour TTL for satellite/terrain extractions
+
 def get_all_features(lat: float, lon: float, date_str: str = None) -> dict:
     """
     Unified function fetching all satellite & terrain features for model input.
-    Executes real GEE queries without mock or default overrides.
+    Caches results by rounded coordinate (3 decimal places ~100m) to prevent duplicate GEE calls.
+    Executes real GEE queries without mock or default overrides on cache misses.
     """
+    key = (round(lat, 3), round(lon, 3), date_str)
+    now = time.time()
+    
+    with _GEE_CACHE_LOCK:
+        if key in _GEE_FEATURE_CACHE:
+            cached_data, timestamp = _GEE_FEATURE_CACHE[key]
+            if now - timestamp < GEE_CACHE_TTL:
+                print(f"[GEE Cache Hit] Reusing cached satellite/terrain features for ({lat}, {lon}) (Age: {round(now - timestamp, 1)}s)")
+                return cached_data
+
     init_gee()
-    print(f"[GEE] Extracting real-world satellite & terrain features for ({lat}, {lon})...")
+    print(f"[GEE Cache Miss] Extracting real-world satellite & terrain features for ({lat}, {lon})...")
     terrain = get_terrain_features(lat, lon)
     ndvi = get_ndvi_feature(lat, lon, date_str)
     rainfall = get_rainfall_gpm(lat, lon, date_str)
 
-    return {
+    features = {
         "elevation": terrain["elevation"],
         "slope": terrain["slope"],
         "aspect": terrain["aspect"],
@@ -244,3 +262,11 @@ def get_all_features(lat: float, lon: float, date_str: str = None) -> dict:
         "soil_moisture": 0.65,
         "lithology_class": 2
     }
+
+    with _GEE_CACHE_LOCK:
+        if len(_GEE_FEATURE_CACHE) > 1000:
+            _GEE_FEATURE_CACHE.clear()
+        _GEE_FEATURE_CACHE[key] = (features, now)
+
+    return features
+

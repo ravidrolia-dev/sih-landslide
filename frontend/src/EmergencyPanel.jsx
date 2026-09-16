@@ -225,7 +225,7 @@ const EmergencyPanel = ({ onSelectRoute, activeRouteData, onOpenSmsModal, onSwit
                 <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
               </svg>
-              DIJKSTRA SAFE EVACUATION ROUTE ACTIVE
+              SAFE EVACUATION ROUTE ACTIVE
             </div>
             <h3>Origin: <strong>{activeRouteData.origin?.nearest_node || 'Evacuation Point'}</strong> ➔ Destination: <strong className="text-blue">{activeRouteData.destination?.nearest_safe_hub}</strong></h3>
             <div className="evac-metrics-inline">
