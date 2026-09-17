@@ -416,9 +416,13 @@ html, body, #root {
    ========================================================================== */
 .risk-intelligence-panel { display: flex; flex-direction: column; gap: 14px; width: 100%; }
 .intel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.loc-title-row { display: flex; align-items: center; gap: 6px; }
+.loc-title-svg { flex-shrink: 0; }
+.loc-coords-svg { flex-shrink: 0; vertical-align: middle; margin-right: 4px; }
 .location-info .loc-name { font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0; line-height: 1.2; }
-.location-info .loc-coords { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: block; }
-.badge-pill { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.location-info .loc-coords { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; }
+.badge-pill { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; white-space: nowrap; display: inline-flex; align-items: center; }
+.badge-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
 
 .badge-low { background: var(--color-safe-bg); color: var(--color-safe); border: 1px solid rgba(16, 185, 129, 0.3); }
 .badge-medium { background: var(--color-moderate-bg); color: var(--color-moderate); border: 1px solid rgba(234, 179, 8, 0.3); }

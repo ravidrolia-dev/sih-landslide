@@ -37,19 +37,33 @@ const RiskPanel = ({ data, loading, error, locationName, onFindSafeRoute, onOpen
 
   const getCategoryBadge = (cat) => {
     switch (cat) {
-      case 'Severe': return { label: 'CRITICAL', class: 'badge-critical', icon: '🔴', color: '#ef4444' };
-      case 'Warning': return { label: 'HIGH RISK', class: 'badge-high', icon: '🟠', color: '#f97316' };
-      case 'Alert': return { label: 'MODERATE', class: 'badge-medium', icon: '🟡', color: '#eab308' };
-      default: return { label: 'LOW RISK', class: 'badge-low', icon: '🟢', color: '#10b981' };
+      case 'Severe': return { label: 'CRITICAL', class: 'badge-critical', color: '#ef4444' };
+      case 'Warning': return { label: 'HIGH RISK', class: 'badge-high', color: '#f97316' };
+      case 'Alert': return { label: 'MODERATE', class: 'badge-medium', color: '#eab308' };
+      default: return { label: 'LOW RISK', class: 'badge-low', color: '#10b981' };
     }
   };
 
   const badge = getCategoryBadge(category);
 
+  // Determine clean, human-readable nearby place name for Line 1
+  const rawName = (locationName || data?.nearest_place || data?.location_name || '').replace(/[🎯📍]/g, '').trim();
+  let displayPlaceName = rawName;
+
+  if (data?.nearest_place && (displayPlaceName.includes('°') || displayPlaceName.includes('Live GPS') || !displayPlaceName)) {
+    displayPlaceName = data.nearest_place;
+  } else if (data?.location_name && (displayPlaceName.includes('°') || displayPlaceName.includes('Live GPS') || !displayPlaceName)) {
+    displayPlaceName = data.location_name;
+  }
+
+  if (!displayPlaceName || displayPlaceName.includes('Extracting')) {
+    displayPlaceName = 'Extracting nearby location...';
+  }
+
   const downloadPdfAdvisory = () => {
     const lat = coordinates?.latitude;
     const lon = coordinates?.longitude;
-    const loc = encodeURIComponent(locationName || 'Queried Location');
+    const loc = encodeURIComponent(displayPlaceName || 'Queried Location');
     window.open(`${API_BASE_URL}/advisory/pdf?lat=${lat}&lon=${lon}&location_name=${loc}`, '_blank');
   };
 
@@ -58,13 +72,24 @@ const RiskPanel = ({ data, loading, error, locationName, onFindSafeRoute, onOpen
       {/* Location Header */}
       <div className="intel-header">
         <div className="location-info">
-          <h2 className="loc-name">{locationName || 'Queried Location'}</h2>
+          <div className="loc-title-row">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="loc-title-svg">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <h2 className="loc-name">{displayPlaceName}</h2>
+          </div>
           <span className="loc-coords">
-            📍 {coordinates?.latitude?.toFixed(4)}°N, {coordinates?.longitude?.toFixed(4)}°E
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loc-coords-svg">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+            {coordinates?.latitude?.toFixed(4)}°N, {coordinates?.longitude?.toFixed(4)}°E
           </span>
         </div>
         <div className={`badge-pill ${badge.class}`}>
-          {badge.icon} {badge.label}
+          <span className="badge-status-dot" style={{ backgroundColor: badge.color }}></span>
+          {badge.label}
         </div>
       </div>
 

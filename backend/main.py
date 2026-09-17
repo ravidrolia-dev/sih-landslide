@@ -86,6 +86,54 @@ _LOCATION_RISK_CACHE = {}
 _LOCATION_RISK_LOCK = threading.Lock()
 LOCATION_RISK_CACHE_TTL = 3600  # 1 hour TTL for location risk predictions
 
+_REVERSE_GEOCODE_CACHE = {}
+
+def reverse_geocode(lat: float, lon: float) -> str:
+    """
+    Reverse geocodes coordinates to a human-readable nearby place, district, or city name.
+    """
+    cache_key = (round(lat, 3), round(lon, 3))
+    if cache_key in _REVERSE_GEOCODE_CACHE:
+        return _REVERSE_GEOCODE_CACHE[cache_key]
+
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=12"
+        req = urllib.request.Request(url, headers={'User-Agent': 'NE-GeoAlert-GIS/1.0'})
+        with urllib.request.urlopen(req, timeout=3) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            address = data.get("address", {})
+            place = (
+                address.get("village") or 
+                address.get("town") or 
+                address.get("city") or 
+                address.get("suburb") or 
+                address.get("county") or 
+                address.get("state_district") or 
+                address.get("district") or
+                data.get("name")
+            )
+            state = address.get("state")
+
+            if place and state:
+                name = f"{place} ({state})"
+            elif place:
+                name = place
+            elif state:
+                name = state
+            else:
+                display_parts = [p.strip() for p in data.get("display_name", "").split(",") if p.strip()]
+                name = ", ".join(display_parts[:2]) if display_parts else f"Location ({lat:.3f}°, {lon:.3f}°)"
+
+            if name:
+                _REVERSE_GEOCODE_CACHE[cache_key] = name
+                return name
+    except Exception as e:
+        print(f"[Reverse Geocode Notice] Failed for ({lat}, {lon}): {e}")
+
+    fallback = f"Location ({lat:.4f}°, {lon:.4f}°)"
+    _REVERSE_GEOCODE_CACHE[cache_key] = fallback
+    return fallback
+
 @app.on_event("startup")
 def startup_gee_init():
     """Attempt GEE authentication and pre-load ML model singleton during application startup."""
@@ -161,9 +209,13 @@ def get_location_risk(lat: float, lon: float, refresh: bool = False):
         category = "Alert"
     else:
         category = "Watch"
+
+    nearest_place = reverse_geocode(lat, lon)
         
     result = {
         "coordinates": {"latitude": lat, "longitude": lon},
+        "nearest_place": nearest_place,
+        "location_name": nearest_place,
         "risk_score": round(risk_score, 2),
         "category": category,
         "satellite_features": gee_features,

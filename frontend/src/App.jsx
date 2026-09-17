@@ -138,19 +138,38 @@ function App() {
     setLoading(true);
     setError(null);
     setIsInfoCardCollapsed(false);
-    setSelectedLocation({ lat, lon, name: name || `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E` });
+
+    const isCoordName = !name || name.includes('°') || name.includes('Live GPS');
+    setSelectedLocation({ 
+      lat, 
+      lon, 
+      name: isCoordName ? 'Extracting nearby location...' : name 
+    });
 
     try {
       const response = await fetch(`${API_BASE_URL}/risk/location?lat=${lat}&lon=${lon}`);
       if (!response.ok) throw new Error("Failed to extract location risk metrics");
       const data = await response.json();
       setRiskData(data);
-      if (data && data.category) {
-        setSelectedLocation(prev => ({ ...prev, category: data.category }));
-      }
+
+      const resolvedName = (name && !name.includes('°') && !name.includes('Live GPS')) 
+        ? name 
+        : (data.nearest_place || data.location_name || `Location (${lat.toFixed(3)}°, ${lon.toFixed(3)}°)`);
+
+      setSelectedLocation({
+        lat,
+        lon,
+        name: resolvedName,
+        category: data.category
+      });
     } catch (err) {
       console.error(err);
       setError(err.message || "Unable to reach risk service.");
+      setSelectedLocation({
+        lat,
+        lon,
+        name: name || `Location (${lat.toFixed(3)}°, ${lon.toFixed(3)}°)`
+      });
     } finally {
       setLoading(false);
     }
@@ -172,7 +191,7 @@ function App() {
         const lat = Number(pos.coords.latitude.toFixed(4));
         const lon = Number(pos.coords.longitude.toFixed(4));
         setLocatingUser(false);
-        fetchRiskForLocation(lat, lon, `🎯 Live GPS (${lat}°, ${lon}°)`);
+        fetchRiskForLocation(lat, lon);
       },
       (err) => {
         setLocatingUser(false);
