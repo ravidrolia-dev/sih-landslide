@@ -66,13 +66,6 @@ const RiskPanel = ({ data, loading, error, locationName, onFindSafeRoute, onOpen
       {/* Location Header */}
       <div className="intel-header">
         <div className="location-info">
-          <div className="loc-title-row">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="loc-title-svg">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            <h2 className="loc-name">{displayPlaceName}</h2>
-          </div>
           <span className="loc-coords">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="loc-coords-svg">
               <circle cx="12" cy="12" r="10"></circle>
