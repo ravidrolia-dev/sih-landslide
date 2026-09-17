@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
-import RiskMap from './RiskMap';
+import RiskMap, { preventMapPropagation } from './RiskMap';
 import RiskPanel from './RiskPanel';
 import EmergencyPanel from './EmergencyPanel';
 import FieldReportPanel from './FieldReportPanel';
@@ -288,7 +288,7 @@ function App() {
       </div>
 
       {/* Top Floating Glass Navbar */}
-      <header className="floating-navbar-glass">
+      <header className="floating-navbar-glass" {...preventMapPropagation}>
         <div className="floating-brand" onClick={() => setActiveTab('gis')}>
           <span className="brand-logo-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -379,7 +379,7 @@ function App() {
       {activeTab === 'gis' && (
         <>
           {/* Search Bar (Floating Upper-Left) */}
-          <div className="floating-search-box">
+          <div className="floating-search-box" {...preventMapPropagation}>
             <span className="search-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
@@ -423,7 +423,7 @@ function App() {
           </div>
 
           {/* Floating Risk & State Filters (Upper-Right) */}
-          <div className="floating-filters-bar">
+          <div className="floating-filters-bar" {...preventMapPropagation}>
             <select 
               className="floating-filter-select"
               value={selectedState} 
@@ -450,7 +450,7 @@ function App() {
           </div>
 
           {/* Floating Route Planner Button & Collapsible Glass Panel (Right Side) */}
-          <div className="floating-route-container">
+          <div className="floating-route-container" {...preventMapPropagation}>
             <button 
               className={`floating-route-toggle-btn ${isRoutePlannerOpen ? 'active' : ''}`}
               onClick={() => setIsRoutePlannerOpen(prev => !prev)}
@@ -488,7 +488,7 @@ function App() {
 
           {/* Floating Location Risk Information Card (Bottom-Right) */}
           {riskData && (
-            <div className="floating-info-card-container">
+            <div className="floating-info-card-container" {...preventMapPropagation}>
               {isInfoCardCollapsed ? (
                 <div className="floating-chip-mini" onClick={() => setIsInfoCardCollapsed(false)}>
                   <span className="chip-pin">
@@ -532,7 +532,7 @@ function App() {
           )}
 
           {/* Floating Compact Risk Legend (Bottom-Left) */}
-          <div className="floating-legend-container">
+          <div className="floating-legend-container" {...preventMapPropagation}>
             {isLegendExpanded ? (
               <div className="floating-legend-glass">
                 <div className="legend-header" onClick={() => setIsLegendExpanded(false)}>
@@ -560,7 +560,8 @@ function App() {
 
       {/* Floating Overlay Pages for non-GIS Tabs (Emergency Ops, Field Reports, Model Backtest) */}
       {activeTab !== 'gis' && (
-        <div className="floating-tab-page-container" onClick={(e) => {
+        <div className="floating-tab-page-container" {...preventMapPropagation} onClick={(e) => {
+          preventMapPropagation.onClick(e);
           if (e.target.className === 'floating-tab-page-container') {
             setActiveTab('gis');
           }

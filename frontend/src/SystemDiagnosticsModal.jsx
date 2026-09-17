@@ -1,12 +1,16 @@
 import React from 'react';
 import { API_BASE_URL } from './config';
+import { preventMapPropagation } from './RiskMap';
 
 const SystemDiagnosticsModal = ({ isOpen, onClose, backendStatus, heatmapSummary, offlineQueueCount }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="diagnostics-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" {...preventMapPropagation} onClick={(e) => {
+      preventMapPropagation.onClick(e);
+      onClose();
+    }}>
+      <div className="diagnostics-modal-content" {...preventMapPropagation}>
         <div className="diagnostics-modal-header">
           <div className="header-title-group">
             <span className="diag-icon">⚙️</span>

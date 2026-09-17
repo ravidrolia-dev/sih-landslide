@@ -78,6 +78,65 @@ const getCategoryColor = (cat) => {
   }
 };
 
+export const preventMapPropagation = {
+  onClick: (e) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+    }
+  },
+  onMouseDown: (e) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+    }
+  },
+  onMouseUp: (e) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+    }
+  },
+  onPointerDown: (e) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+    }
+  },
+  onPointerUp: (e) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+    }
+  },
+  onDoubleClick: (e) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+    }
+  },
+  onTouchStart: (e) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) {
+        e.nativeEvent.stopImmediatePropagation();
+      }
+    }
+  }
+};
+
 const CustomMapControls = ({ 
   onScanLocation, 
   locatingUser, 
@@ -88,6 +147,23 @@ const CustomMapControls = ({
 }) => {
   const map = useMap();
   const [isLayersPanelOpen, setIsLayersPanelOpen] = React.useState(false);
+
+  const controlsRef = React.useRef(null);
+  const layerMenuRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (controlsRef.current) {
+      L.DomEvent.disableClickPropagation(controlsRef.current);
+      L.DomEvent.disableScrollPropagation(controlsRef.current);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (layerMenuRef.current) {
+      L.DomEvent.disableClickPropagation(layerMenuRef.current);
+      L.DomEvent.disableScrollPropagation(layerMenuRef.current);
+    }
+  }, [isLayersPanelOpen]);
   
   const handleZoomIn = (e) => {
     e.stopPropagation();
@@ -121,7 +197,7 @@ const CustomMapControls = ({
   };
 
   return (
-    <div className="custom-map-controls-stack">
+    <div ref={controlsRef} className="custom-map-controls-stack" {...preventMapPropagation}>
       <button className="control-btn" onClick={handleZoomIn} title="Zoom In">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -177,7 +253,7 @@ const CustomMapControls = ({
 
       {/* Floating Glassmorphism Layers Selector Panel */}
       {isLayersPanelOpen && (
-        <div className="floating-layer-menu-glass" onClick={(e) => e.stopPropagation()}>
+        <div ref={layerMenuRef} className="floating-layer-menu-glass" {...preventMapPropagation}>
           <div className="layer-menu-header">
             <span className="layer-menu-title">MAP BASE & LAYERS</span>
             <button className="layer-menu-close" onClick={() => setIsLayersPanelOpen(false)}>✕</button>
@@ -255,6 +331,14 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
   const zoom = 7;
   const [activeBaseMap, setActiveBaseMap] = React.useState('satellite');
   const [showRiskGrid, setShowRiskGrid] = React.useState(true);
+
+  const routeCardRef = React.useRef(null);
+  React.useEffect(() => {
+    if (routeCardRef.current) {
+      L.DomEvent.disableClickPropagation(routeCardRef.current);
+      L.DomEvent.disableScrollPropagation(routeCardRef.current);
+    }
+  }, [routeData]);
 
   const geoJsonStyle = (feature) => {
     const color = getCategoryColor(feature.properties.category);
@@ -466,7 +550,7 @@ const RiskMap = ({ selectedLocation, onLocationSelect, heatmapData, routeData, f
 
       {/* Floating Active Evacuation Route Banner */}
       {routeData && (
-        <div className={`floating-route-card ${routeData.is_rerouted ? 'rerouted' : routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? 'blocked' : ''}`}>
+        <div ref={routeCardRef} className={`floating-route-card ${routeData.is_rerouted ? 'rerouted' : routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? 'blocked' : ''}`} {...preventMapPropagation}>
           <div className="route-card-main">
             <div className="route-header-line">
               {routeData.status === 'NO_SAFE_ROUTE_AVAILABLE' ? (

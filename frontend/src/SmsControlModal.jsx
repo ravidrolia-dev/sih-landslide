@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from './config';
+import { preventMapPropagation } from './RiskMap';
 
 const SmsControlModal = ({ isOpen, onClose, initialData = {} }) => {
   const [phoneNumber, setPhoneNumber] = useState('+919352526219');
@@ -83,8 +84,11 @@ const SmsControlModal = ({ isOpen, onClose, initialData = {} }) => {
   const badge = getRiskBadge(riskScore);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="sms-modal-card" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" {...preventMapPropagation} onClick={(e) => {
+      preventMapPropagation.onClick(e);
+      onClose();
+    }}>
+      <div className="sms-modal-card" {...preventMapPropagation}>
         {/* Modal Header */}
         <div className="sms-card-header">
           <div className="title-row">
