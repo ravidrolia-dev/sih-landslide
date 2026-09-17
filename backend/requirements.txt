@@ -1,9 +1,7 @@
 fastapi
 uvicorn
 gunicorn
-psycopg2-binary
-sqlalchemy
-geoalchemy2
+pymongo
 xgboost
 shap
 pandas

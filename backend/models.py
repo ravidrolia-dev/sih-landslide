@@ -1,37 +1,37 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Date
-from geoalchemy2 import Geometry
-from database import Base
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any, List
+from datetime import datetime, date
 
-class GridCell(Base):
-    __tablename__ = "grid_cells"
+class GeoJSONPolygon(BaseModel):
+    type: str = "Polygon"
+    coordinates: List[List[List[float]]]
 
-    id = Column(Integer, primary_key=True, index=True)
-    geom = Column(Geometry('POLYGON', srid=4326), nullable=False)
-    slope = Column(Float)
-    aspect = Column(Float)
-    elevation = Column(Float)
-    lithology_class = Column(String)
+class GeoJSONPoint(BaseModel):
+    type: str = "Point"
+    coordinates: List[float]
 
-class RainfallReading(Base):
-    __tablename__ = "rainfall_readings"
+class GridCell(BaseModel):
+    id: int
+    geom: GeoJSONPolygon
+    slope: Optional[float] = None
+    aspect: Optional[float] = None
+    elevation: Optional[float] = None
+    lithology_class: Optional[str] = None
 
-    id = Column(Integer, primary_key=True, index=True)
-    cell_id = Column(Integer, ForeignKey("grid_cells.id"))
-    timestamp = Column(DateTime)
-    mm = Column(Float)
+class RainfallReading(BaseModel):
+    id: int
+    cell_id: int
+    timestamp: datetime
+    mm: float
 
-class SoilMoistureReading(Base):
-    __tablename__ = "soil_moisture_readings"
+class SoilMoistureReading(BaseModel):
+    id: int
+    cell_id: int
+    timestamp: datetime
+    value: float
 
-    id = Column(Integer, primary_key=True, index=True)
-    cell_id = Column(Integer, ForeignKey("grid_cells.id"))
-    timestamp = Column(DateTime)
-    value = Column(Float)
-
-class LandslideEvent(Base):
-    __tablename__ = "landslide_events"
-
-    id = Column(Integer, primary_key=True, index=True)
-    geom = Column(Geometry('POINT', srid=4326), nullable=False)
-    date = Column(Date)
-    source = Column(String)
+class LandslideEvent(BaseModel):
+    id: int
+    geom: GeoJSONPoint
+    date: date
+    source: str

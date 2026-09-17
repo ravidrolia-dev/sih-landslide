@@ -11,24 +11,14 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 
 from fastapi import FastAPI, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from geoalchemy2.functions import ST_AsGeoJSON
 
-from database import engine, get_db, Base
+from database import get_db
 import models
 import advisory_service
 import backtest_service
+from pymongo.database import Database
 
-# Initialize PostGIS tables if database is available
-try:
-    with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
-        conn.commit()
-    Base.metadata.create_all(bind=engine)
-    print("[Database] PostGIS tables initialized successfully.")
-except Exception as e:
-    print(f"[Database Warning] PostgreSQL connection skipped ({e}). API running in standalone GEE mode.")
+# MongoDB Collections will be created on first insert, no need for explicit initialization here.
 
 app = FastAPI(title="Landslide Risk API")
 
@@ -47,11 +37,11 @@ def health_check():
     return {"status": "ok", "message": "NE-GeoAlert Landslide Risk API Engine is Live!"}
 
 @app.get("/risk/grid")
-def get_grid_risk(db: Session = Depends(get_db)):
+def get_grid_risk(db: Database = Depends(get_db)):
     """
     Returns all grid cells as a GeoJSON FeatureCollection with risk scores.
     """
-    cells = db.query(models.GridCell.id, ST_AsGeoJSON(models.GridCell.geom).label('geojson')).all()
+    cells = list(db.grid_cells.find({}))
     
     features = []
     for cell in cells:
@@ -60,8 +50,8 @@ def get_grid_risk(db: Session = Depends(get_db)):
         
         feature = {
             "type": "Feature",
-            "id": cell.id,
-            "geometry": json.loads(cell.geojson),
+            "id": cell.get("id") or str(cell.get("_id")),
+            "geometry": cell.get("geom", {"type": "Point", "coordinates": [0,0]}),
             "properties": {
                 "risk_score": round(risk_score, 2)
             }
@@ -525,21 +515,21 @@ def get_spatial_risk_heatmap(district: str = None, category: str = None, refresh
 
 
 @app.get("/risk/{cell_id}")
-def get_cell_risk(cell_id: int, db: Session = Depends(get_db)):
+def get_cell_risk(cell_id: int, db: Database = Depends(get_db)):
     """
     Returns risk analysis for a specific grid cell.
     """
-    cell = db.query(models.GridCell).filter(models.GridCell.id == cell_id).first()
+    cell = db.grid_cells.find_one({"id": cell_id})
     if not cell:
         raise HTTPException(status_code=404, detail="Grid cell not found")
     
     # Build feature dict (ensure features match the ones used in training)
     features_dict = {
-        "slope": cell.slope if cell.slope is not None else 30.0,
+        "slope": cell.get("slope") if cell.get("slope") is not None else 30.0,
         "rainfall_24h": 100.0, # Placeholder until live rainfall is hooked up
         "rainfall_72h": 150.0,
         "soil_moisture": 0.5,
-        "lithology_class": int(cell.lithology_class) if cell.lithology_class and str(cell.lithology_class).isdigit() else 2
+        "lithology_class": int(cell.get("lithology_class")) if cell.get("lithology_class") and str(cell.get("lithology_class")).isdigit() else 2
     }
     
     try:
@@ -574,10 +564,10 @@ def get_cell_risk(cell_id: int, db: Session = Depends(get_db)):
         "category": category,
         "top_factors": top_factors,
         "features": {
-            "slope": cell.slope,
-            "aspect": cell.aspect,
-            "elevation": cell.elevation,
-            "lithology_class": cell.lithology_class
+            "slope": cell.get("slope"),
+            "aspect": cell.get("aspect"),
+            "elevation": cell.get("elevation"),
+            "lithology_class": cell.get("lithology_class")
         }
     }
 
