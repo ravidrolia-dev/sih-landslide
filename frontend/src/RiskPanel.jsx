@@ -46,19 +46,13 @@ const RiskPanel = ({ data, loading, error, locationName, onFindSafeRoute, onOpen
 
   const badge = getCategoryBadge(category);
 
-  // Determine clean, human-readable nearby place name for Line 1
-  const rawName = (locationName || data?.nearest_place || data?.location_name || '').replace(/[🎯📍]/g, '').trim();
-  let displayPlaceName = rawName;
-
-  if (data?.nearest_place && (displayPlaceName.includes('°') || displayPlaceName.includes('Live GPS') || !displayPlaceName)) {
-    displayPlaceName = data.nearest_place;
-  } else if (data?.location_name && (displayPlaceName.includes('°') || displayPlaceName.includes('Live GPS') || !displayPlaceName)) {
-    displayPlaceName = data.location_name;
-  }
-
-  if (!displayPlaceName || displayPlaceName.includes('Extracting')) {
-    displayPlaceName = 'Extracting nearby location...';
-  }
+  // Always prefer backend-resolved place name over locationName (which may be raw coordinates)
+  const isCoordString = (s) => !s || s.includes('°') || s.includes('Live GPS') || s.includes('Extracting');
+  const displayPlaceName = 
+    data?.nearest_place ||
+    data?.location_name ||
+    (!isCoordString(locationName) ? locationName?.replace(/[🎯📍]/g, '').trim() : null) ||
+    'Loading place name...';
 
   const downloadPdfAdvisory = () => {
     const lat = coordinates?.latitude;
